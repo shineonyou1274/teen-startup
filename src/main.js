@@ -57,13 +57,14 @@ function title() {
     <p class="lead">골목의 작은 가게에서 시작해. 열두 달 동안 달마다 한 번씩 어려운 결정을 내려야 해. 네 선택에 따라 가게 모습이 달라져.</p>
     <label for="nm">가게 이름을 지어 줘</label>
     <input id="nm" type="text" maxlength="10" value="${esc(can ? saved.name : '')}" placeholder="우리 치킨" autocomplete="off">
+    <label class="check"><input type="checkbox" id="mix" checked> 판마다 다른 고민이 나오게 하기 <small>(끄면 모두 같은 카드로 해)</small></label>
     <button class="btn" id="go">가게 문 열기</button>
     ${can ? `<button class="btn ghost" id="resume">이어서 하기 (${saved.month}개월 차)</button>` : ''}
     <p class="fine">진행 상황은 이 기기에만 저장되고, 어디로도 보내지 않아.</p>`);
   const nm = $('#nm');
   nm.addEventListener('input', () => shop.setName(nm.value.trim()));
   nm.addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#go').click(); });
-  on('#go', () => { start(newGame(nm.value.trim())); });
+  on('#go', () => { start(newGame(nm.value.trim(), $('#mix').checked)); });
   on('#resume', () => start(saved));
 }
 function start(state) {
@@ -75,7 +76,7 @@ function card() {
   chipMonth = 0; drawHud();
   const c = cardFor(S);
   view(`
-    <p class="eyebrow">${S.month}개월 차 · 이달의 고민</p>
+    <p class="eyebrow">${S.month}개월 차 · ${c.kind === 'follow' ? '⚡ 지난 선택이 불러온 일' : '이달의 고민'}</p>
     <h2>${esc(c.title)}</h2>
     <div class="bubble">${esc(c.text)}</div>
     ${c.choices.map((ch, i) => `<button class="choice" data-i="${i}"><span class="n">${i + 1}</span><span>${esc(ch.label)}</span></button>`).join('')}

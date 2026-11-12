@@ -108,3 +108,6 @@ ul.ask { padding-left: 20px; margin: 4px 0 0; } ul.ask li { margin: 6px 0; }
 .opt.on { background: var(--sun); border-color: #f0b93a; box-shadow: 0 3px 0 #f0b93a; }
 .btn:disabled { opacity: .45; box-shadow: none; cursor: default; }
 ol.log .mine { color: var(--coral-d); }
+
+label.check { display: flex; gap: 8px; align-items: center; margin: 0 0 14px; font-size: 15px; color: var(--ink); cursor: pointer; }
+label.check input { width: 20px; height: 20px; accent-color: var(--coral); flex: none; } label.check small { color: var(--soft); }

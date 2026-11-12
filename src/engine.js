@@ -1,6 +1,6 @@
 // BizEngine — 화면 없이 숫자만 굴리는 치킨집 장사 계산기.
 // 돈의 단위는 만 원, 치킨값과 재료비만 원 단위다.
-import { CARDS } from './cards.js';
+import { CARDS, ALT, FOLLOW } from './cards.js';
 
 export const MONTHS = CARDS.length;
 const BASE = 560; // 신뢰 50일 때 한 달에 찾는 치킨 수
@@ -13,8 +13,11 @@ const SKILL = [
   ['C', 'CI', 'P'], ['T', '', 'G'], ['P', '', 'PI'], ['P', '', 'PI'], ['T', '', 'PT'], ['G', 'T', 'C'],
 ];
 
-export function newGame(name) {
+export function newGame(name, shuffle = true) {
+  // deck[m]이 참이면 m개월 차에 바꿔 나오는 카드를 쓴다
+  const deck = {}; for (const m in ALT) deck[m] = shuffle && Math.random() < 0.5;
   return {
+    deck, shuffle, cur: null,
     name: name || '우리 치킨', month: 1, cash: 1000, trust: 50, team: 60, impact: 10,
     price: 18000, unitCost: 8000, staff: 2, wage: 110, rent: 150, etc: 60,
     feeRate: 0.1, deliveryShare: 0.2, demand: 1, temp: 1, level: 1,
@@ -43,6 +46,7 @@ function applyFx(s, fx) {
   if (fx.demand) s.demand *= fx.demand;
   if (fx.temp) s.temp *= fx.temp;
   if (fx.flag) s.flags[fx.flag] = true;
+  if (fx.unflag) delete s.flags[fx.unflag];
   s.trust = clamp(s.trust); s.team = clamp(s.team); s.impact = clamp(s.impact);
 }
 
@@ -60,7 +64,17 @@ function tagsOf(fx, s) {
   return t;
 }
 
-export const cardFor = (s) => CARDS[s.month - 1];
+// 이번 달 카드. 한번 정해지면 그달 안에는 바뀌지 않는다.
+export function cardFor(s) {
+  if (!s.cur || s.cur.month !== s.month) {
+    const f = s.shuffle ? FOLLOW.find((x) => x.month === s.month && x.when(s)) : null;
+    s.cur = { month: s.month, key: f ? f.key : s.deck && s.deck[s.month] ? 'alt' : 'base' };
+  }
+  const k = s.cur.key;
+  if (k === 'base') return { ...CARDS[s.month - 1], kind: 'base' };
+  if (k === 'alt') return { ...ALT[s.month], kind: 'alt' };
+  return { ...FOLLOW.find((x) => x.key === k).card, kind: 'follow' };
+}
 
 export function choose(s, idx, rng = Math.random, idea = '') {
   const card = cardFor(s), c = card.choices[idx];
@@ -70,14 +84,15 @@ export function choose(s, idx, rng = Math.random, idea = '') {
   applyFx(s, c.fx); tags.push(...tagsOf(c.fx, s));
   let luck = null;
   if (c.risk) {
-    s.risky = (s.risky || 0) + 1;
+    if (!c.risk.fair) s.risky = (s.risky || 0) + 1; // 정당한 협상처럼 떳떳한 모험은 세지 않는다
     if (rng() < c.risk.p) { applyFx(s, c.risk.bad.fx); tags.push(...tagsOf(c.risk.bad.fx, s)); text += ' ' + c.risk.bad.text; luck = 'bad'; }
-    else { text += ' ' + c.risk.good.text; luck = 'good'; }
+    else { if (c.risk.good.fx) { applyFx(s, c.risk.good.fx); tags.push(...tagsOf(c.risk.good.fx, s)); } text += ' ' + c.risk.good.text; luck = 'good'; }
   }
   const deltas = {};
   for (const k in before) deltas[k] = s[k] - before[k];
-  s.picks.push({ month: s.month, title: card.title, label: c.label, idx, idea: String(idea || '').trim().slice(0, 80) });
-  return { label: c.label, text, deltas, tags, concept: card.concept, luck };
+  const sk = card.kind === 'base' ? SKILL[s.month - 1][idx] : c.sk || '';
+  s.picks.push({ month: s.month, title: card.title, label: c.label, idx, sk, idea: String(idea || '').trim().slice(0, 80) });
+  return { label: c.label, text, deltas, tags, concept: card.concept, luck, follow: card.kind === 'follow' };
 }
 
 export function runMonth(s) {
@@ -209,7 +224,7 @@ export function ending(s) {
   }
   // 창업가 역량 일곱 가지(0~5점). 시험 점수가 아니라 이번 판의 선택이 남긴 흔적이다.
   const n = Math.max(1, s.history.length), black = s.history.filter((h) => h.profit >= 0).length / n;
-  const cnt = (k) => s.picks.reduce((a, p) => a + ((SKILL[p.month - 1] || [])[p.idx] || '').split(k).length - 1, 0);
+  const cnt = (k) => s.picks.reduce((a, p) => a + (p.sk !== undefined ? p.sk : (SKILL[p.month - 1] || [])[p.idx] || '').split(k).length - 1, 0);
   const half = (v) => Math.max(0.5, Math.min(5, Math.round(v * 2) / 2));
   const alive = s.over !== 'bankrupt';
   const skills = [
