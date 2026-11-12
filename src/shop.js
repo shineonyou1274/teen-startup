@@ -456,6 +456,7 @@ export function createShop(canvas) {
     update, burst,
     setBusy(b) { busy = b; },
     setMenu(n) { menuName = n || ''; if (menuName) paintPoster(); update(Object.assign({}, st), false); },
+    snapshot() { renderer.render(scene, cam); return canvas; }, // 그린 직후에 바로 옮겨 그려야 한다
     setName(n) { shopName = n || '우리 치킨'; paintSigns(); },
   };
 }

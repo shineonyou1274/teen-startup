@@ -5,6 +5,8 @@ import { CARDS, ALT, FOLLOW } from './cards.js';
 export const MONTHS = CARDS.length;
 const BASE = 560; // 신뢰 50일 때 한 달에 찾는 치킨 수
 const CAP = [0, 800, 1300, 2000, 2800]; // 가게 크기별로 한 달에 튀길 수 있는 양
+// 계절: 1월에 문을 연다. 여름은 치맥 철, 가을은 한가하고, 12월은 연말 모임 철이다.
+const SEASON = { 6: 1.06, 7: 1.12, 8: 1.1, 9: 0.92, 10: 0.92, 12: 1.12 };
 const BUSY = 330; // 알바 한 명이 무리 없이 맡는 양
 
 // 카드별·선택별로 드러나는 역량. P 문제해결 · I 혁신적사고 · C 도전정신 · T 협업능력 · G 성장의지
@@ -97,7 +99,7 @@ export function choose(s, idx, rng = Math.random, idea = '') {
 
 export function runMonth(s) {
   const cap = CAP[s.level];
-  const want = BASE * (0.4 + 1.2 * s.trust / 100) * Math.pow(18000 / s.price, 1.3) * (0.85 + 0.3 * s.team / 100) * s.demand * s.temp;
+  const want = BASE * (0.4 + 1.2 * s.trust / 100) * Math.pow(18000 / s.price, 1.3) * (0.85 + 0.3 * s.team / 100) * s.demand * s.temp * (SEASON[s.month] || 1);
   const qty = Math.round(Math.min(cap, want));
   const lost = Math.max(0, Math.round(want - cap));
   const revenue = Math.round(qty * s.price / 10000);
@@ -118,6 +120,13 @@ export function runMonth(s) {
   s.cash += profit; s.temp = 1;
 
   const notes = [];
+  const fixed = cost - rows[0][1] - rows[4][1], margin = s.price - s.unitCost - s.price * s.deliveryShare * s.feeRate;
+  const bep = margin > 0 ? Math.ceil(fixed * 10000 / margin) : null; // 손익분기점: 이만큼 팔아야 본전
+  const sea = SEASON[s.month], nextSea = SEASON[s.month + 1];
+  if (sea > 1) notes.push(s.month === 12 ? '연말 모임 철이라 주문이 늘었어.' : '여름 치맥 철이라 손님이 늘었어.');
+  if (sea < 1) notes.push('날이 선선해지면서 치맥 손님이 줄었어.');
+  if (nextSea > 1 && !(sea > 1)) notes.push(s.month === 11 ? '다음 달은 연말 모임 철이야. 주문이 늘 거야.' : '다음 달부터 여름 치맥 철이야. 일손과 튀길 수 있는 양을 미리 살펴봐.');
+  if (nextSea < 1 && !(sea < 1)) notes.push('다음 달부터는 한가한 철이야. 통장에 여유를 남겨 둬.');
   let dTrust = Math.round((s.team - 55) / 15), dTeam = 0;
   if (dTrust > 0) notes.push('알바생들이 신나게 일해서 손님 평가가 올랐어.');
   if (dTrust < 0) notes.push('가게 분위기가 가라앉아 서비스 평가가 떨어졌어.');
@@ -138,7 +147,7 @@ export function runMonth(s) {
   s.history.push({ month, profit, revenue, qty, cash: s.cash });
   s.month += 1;
   if (!s.over && s.month > MONTHS) s.over = 'done';
-  return { month, price, qty, lost, revenue, rows, cost, branch, profit, notes, loanTaken, dTrust, dTeam };
+  return { month, price, qty, lost, revenue, rows, cost, branch, profit, bep, notes, loanTaken, dTrust, dTeam };
 }
 
 const RIDER = 180;
