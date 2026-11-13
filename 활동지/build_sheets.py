@@ -32,6 +32,22 @@ def build(fname, tag, title, right, blocks):
         t = [x for x in r if L(x) == 't']
         if t: t[0].text = text
         return p
+    HP = 'http://www.hancom.co.kr/hwpml/2011/paragraph'; HC = 'http://www.hancom.co.kr/hwpml/2011/core'
+    def picture(png, w):
+        """그림 한 장을 꾸러미에 넣고, 글자처럼 놓이는 그림 문단을 돌려준다. (w: 한글 단위 너비)"""
+        from PIL import Image
+        pw, ph = Image.open(png).size; ow, oh = pw * 75, ph * 75; h = round(w * ph / pw); k = w / ow
+        os.makedirs(os.path.join(work, 'BinData'), exist_ok=True); shutil.copy(png, os.path.join(work, 'BinData', 'image1.png')); extra.append('BinData/image1.png')
+        hpf = os.path.join(work, 'Contents', 'content.hpf'); ht = etree.parse(hpf)
+        man = next(x for x in ht.getroot() if L(x) == 'manifest')
+        it = etree.SubElement(man, man[0].tag); it.set('id', 'image1'); it.set('href', 'BinData/image1.png'); it.set('media-type', 'image/png'); it.set('isEmbeded', '1')
+        ht.write(hpf, xml_declaration=True, encoding=ht.docinfo.encoding or 'UTF-8', standalone=ht.docinfo.standalone)
+        nid[0] += 1
+        xml = f'''<hp:pic xmlns:hp="{HP}" xmlns:hc="{HC}" id="{nid[0]}" zOrder="1" numberingType="PICTURE" textWrap="TOP_AND_BOTTOM" textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" href="" groupLevel="0" instid="{nid[0] + 100000}" reverse="0"><hp:offset x="0" y="0"/><hp:orgSz width="{ow}" height="{oh}"/><hp:curSz width="{w}" height="{h}"/><hp:flip horizontal="0" vertical="0"/><hp:rotationInfo angle="0" centerX="{w // 2}" centerY="{h // 2}" rotateimage="1"/><hp:renderingInfo><hc:transMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/><hc:scaMatrix e1="{k:.6f}" e2="0" e3="0" e4="0" e5="{k:.6f}" e6="0"/><hc:rotMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/></hp:renderingInfo><hc:img binaryItemIDRef="image1" bright="0" contrast="0" effect="REAL_PIC" alpha="0"/><hp:imgRect><hc:pt0 x="0" y="0"/><hc:pt1 x="{ow}" y="0"/><hc:pt2 x="{ow}" y="{oh}"/><hc:pt3 x="0" y="{oh}"/></hp:imgRect><hp:imgClip left="0" right="{ow}" top="0" bottom="{oh}"/><hp:inMargin left="0" right="0" top="0" bottom="0"/><hp:imgDim dimwidth="{ow}" dimheight="{oh}"/><hp:effects/><hp:sz width="{w}" widthRelTo="ABSOLUTE" height="{h}" heightRelTo="ABSOLUTE" protect="0"/><hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="COLUMN" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/><hp:outMargin left="0" right="0" top="0" bottom="0"/><hp:shapeComment>역량 도형 빈칸</hp:shapeComment></hp:pic>'''
+        p = cellp(21, 9, ''); r = [x for x in p if L(x) == 'run'][0]
+        for x in list(r): r.remove(x)
+        r.append(etree.fromstring(xml)); return p, h
+    extra = []
     STY = {'h': (21, 13), 'l': (20, 10), 's': (20, 11), 'b': (20, 9), 'c': (21, 16), 'cb': (21, 9)}
     def table(widths, rows, into=None):
         """rows: (height, [cell,...]); cell = (bf, [(style, text), ...])"""
@@ -46,7 +62,7 @@ def build(fname, tag, title, right, blocks):
                 tc = copy.deepcopy(tc0); tc.set('borderFillIDRef', str(bf))
                 sl = next(x for x in tc if L(x) == 'subList')
                 for x in list(sl): sl.remove(x)
-                for sty, text in paras: sl.append(cellp(*STY[sty], text))
+                for sty, text in paras: sl.append(text if sty == 'pic' else cellp(*STY[sty], text))
                 for x in tc:
                     if L(x) == 'cellAddr': x.set('colAddr', str(ci)); x.set('rowAddr', str(ri))
                     if L(x) == 'cellSz': x.set('width', str(widths[ci])); x.set('height', str(h))
@@ -67,6 +83,9 @@ def build(fname, tag, title, right, blocks):
         elif k == 'date': para('date', ['날짜             년        월        일                '])
         elif k == 'label':  # (label, color, height, [(제목, 설명), ...])
             table([15307, 35717], [(b[2], [(b[1], [('l', t), ('s', s)]), (3, [('b', '')])]) for t, s in b[3]])
+        elif k == 'labelpic':  # 왼쪽 설명, 오른쪽 그림
+            pic, ph = picture(b[4], b[5])
+            table([15307, 35717], [(ph + 600, [(b[1], [('l', b[2]), ('s', b[3])]), (3, [('pic', pic)])])])
         elif k == 'filled':  # 낱말 풀이처럼 오른쪽이 채워진 표
             table([12000, 39024], [(b[2], [(b[1], [('l', t)]), (3, [('b', s)])]) for t, s in b[3]])
         elif k == 'grid':  # (grid, widths, header, rowheight, color, rows) 각 행은 문자열 목록, 첫 칸은 색 칸
@@ -96,6 +115,7 @@ def build(fname, tag, title, right, blocks):
         zf.write(os.path.join(work, 'mimetype'), 'mimetype', compress_type=zipfile.ZIP_STORED)
         for arc in order:
             if arc != 'mimetype' and not arc.endswith('/'): zf.write(os.path.join(work, arc), arc, compress_type=zipfile.ZIP_DEFLATED)
+        for arc in extra: zf.write(os.path.join(work, arc), arc, compress_type=zipfile.ZIP_DEFLATED)
     print('만듦:', out)
 
 Q = ['1. 나는 어려운 일도 결국 해낼 수 있다고 믿는다 (자기유능감)', '2. 시키지 않아도 할 일을 스스로 정하고 시작한다 (자기주도성)',
@@ -132,7 +152,7 @@ build('치킨집사장님_활동지_사후.hwpx', 'TEEN STARTUP · 사후 활동
     ('head', '2', '나의 창업가 역량 도형   5점이 가장 높습니다'),
     ('grid', [10204] + [5831] * 6 + [5834], ['', '자기유능감', '자기주도성', '성장의지', '도전정신', '혁신적사고', '협업능력', '문제해결'], 2409, 5,
      [['게임이 그려 준 점수'] + [''] * 7, ['내가 매긴 점수 (사전 4번)'] + [''] * 7]),
-    ('label', 5, 22677, [('역량 도형 옮겨 그리기', '화면의 도형을 옮겨 그리고, 내가 매긴 점수를 다른 색으로 겹쳐 그립니다')]),
+    ('labelpic', 5, '역량 도형 옮겨 그리기', '화면의 도형을 옮겨 그리고, 내가 매긴 점수를 다른 색으로 겹쳐 그립니다', os.path.join(OUT, '역량도형_빈칸.png'), 27000),
     ('label', 5, 3401, [('가장 빛난 힘', '그 힘이 드러난 선택은 무엇이었나요'), ('다음에 길러 볼 힘', '학교생활에서 기를 방법 한 가지')]),
     ('head', '3', '원칙과 선택   사전 활동지 2번과 견주어 봅니다', True),
     ('grid', [10204, 12245, 12245, 16330], ['', '시작 전에 적은 것', '실제로 한 선택', '달라졌다면 그 까닭'], 3968, 6, [[('가장 중요하게 여긴 것', '돈·손님·직원·동네'), '', '', ''], [('하지 않겠다고 한 일', '끝까지 지켰나요'), '', '', '']]),
