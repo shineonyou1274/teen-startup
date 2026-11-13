@@ -221,6 +221,8 @@ export function ending(s) {
   let type;
   if (s.over === 'bankrupt') type = { icon: '🌱', name: '다시 일어서는 사장님', line: '가게 문은 닫았지만, 왜 어려워졌는지 아는 사람은 다음에 더 잘해.' };
   else if (s.trust >= 65 && s.team >= 65 && s.impact >= 50 && net >= 1200) type = { icon: '🏆', name: '균형의 달인', line: '돈, 손님, 직원, 동네를 모두 챙겼어. 가장 어려운 길을 해냈어.' };
+  else if (total < 0) type = { icon: '🧭', name: '길을 찾는 중인 사장님', line: '1년을 버텼지만 번 돈보다 쓴 돈이 많았어. 어디서 새었는지 찾으면 두 번째 해는 달라질 거야.' };
+  else if (s.team < 30) type = { icon: '🏃', name: '혼자 달린 사장님', line: '가게는 지켰지만 함께 일한 사람들이 지쳤어. 다음에는 옆 사람의 얼굴을 먼저 살펴봐.' };
   else {
     const score = { money: Math.min(100, net / 30), trust: s.trust, team: s.team, impact: s.impact * 1.15 };
     const top = Object.keys(score).sort((a, b) => score[b] - score[a])[0];
