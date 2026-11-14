@@ -10,9 +10,9 @@
 
 ## 실행
 
-- 파일 하나로 실행: `teen-startup.html`을 브라우저로 엽니다.
+- 파일 하나로 실행: `틴스타트업.html`을 브라우저로 엽니다.
 - 개발: `npm install` 후 `npm run dev`
-- 빌드: `npm run build` → `dist/index.html`이 만들어지고 `teen-startup.html`로 복사됩니다.
+- 빌드: `npm run build` → `dist/index.html`이 만들어지고 `틴스타트업.html`로 복사됩니다.
 
 ## 폴더
 
