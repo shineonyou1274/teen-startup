@@ -179,7 +179,7 @@ function report(r, quiet) {
     ${r.loanTaken ? `<div class="concept" style="background:#fff0ee"><b style="color:#d9534f">🏦 통장이 바닥났어</b>은행에서 500만 원을 급하게 빌렸어. 이제 매달 이자 10만 원이 나가. 한 번 더 바닥나면 문을 닫아야 해.</div>` : ''}
     ${r.notes.length ? `<ul class="notes">${r.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
     ${grow.length ? `<h3>${TR().L.org} 키우기 <small>(하고 싶을 때만)</small></h3>` + grow.map((a) => `<button class="grow" data-id="${a.id}" ${a.ok ? '' : 'disabled'}><span class="ic">${a.icon}</span><span><b>${a.label}</b><small>${a.desc}${a.ok ? '' : ' · 돈이 모자라'}</small></span><span class="cost">${a.cost ? fmt(a.cost) : ''}</span></button>`).join('') : ''}
-    <button class="btn" id="next" style="margin-top:16px">${S.over === 'bankrupt' ? '가게 문을 닫으며…' : S.over ? '1년 결산 보기' : '다음 달로'}</button>`);
+    <button class="btn" id="next" style="margin-top:16px">${S.over === 'bankrupt' ? `${TR().L.place} 문을 닫으며…` : S.over ? '1년 결산 보기' : '다음 달로'}</button>`);
   on('.grow', (b) => { if (act(S, b.dataset.id)) { store.set(S); setTimeout(() => sfx('pop'), 80); report(r, true); } });
   on('#next', () => (S.over ? finale() : menuDue(S) ? menuOffer() : card()));
 }
@@ -276,7 +276,7 @@ function savePdf(e, hi, lo) {
   const page = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.fillStyle = '#fff8ee'; g.fillRect(0, 0, W, H); return [c, g]; };
   const [c1, g1] = page(), card = drawCard(e, hi, lo), k = Math.min(W / card.width, H / card.height);
   g1.drawImage(card, (W - card.width * k) / 2, (H - card.height * k) / 2, card.width * k, card.height * k);
-  const [c2, g] = page(), L = 90, R = W - 90; let y = 120;
+  const [c2, g] = page(), L = 90, R = W - 90, span = monthsWord(S.history.length); let y = 120;
   g.fillStyle = '#e9735e'; g.font = F(34); g.fillText(`${S.name} · ${e.type.name}`, L, y); y += 70;
   g.fillStyle = '#4b3f57'; g.font = F(44); g.fillText('달마다 남긴 이익', L, y); y += 30;
   // 막대그래프
@@ -289,7 +289,7 @@ function savePdf(e, hi, lo) {
     g.fillStyle = '#8a7d94'; g.fillText(`${h.month}월`, x + (bw - 24) / 2, y + ch + 4);
   });
   g.textAlign = 'left'; y += ch + 44;
-  g.fillStyle = '#8a7d94'; g.font = B(24); g.fillText(`단위: 만 원 · 열두 달 합계 ${fmt(e.total)} · ${TR().L.org}의 값어치 ${fmt(e.net)}`, L, y); y += 76;
+  g.fillStyle = '#8a7d94'; g.font = B(24); g.fillText(`단위: 만 원 · ${span} 합계 ${fmt(e.total)} · ${TR().L.org}의 값어치 ${fmt(e.net)}`, L, y); y += 76;
   g.fillStyle = '#4b3f57'; g.font = F(44); g.fillText(`내가 내린 결정 ${S.picks.length}가지`, L, y); y += 52;
   const wrap = (text, font, col, x, maxW, lh) => {
     g.font = font; g.fillStyle = col; let line = '';
@@ -317,6 +317,7 @@ async function saveCard(e, hi, lo) {
   } catch (err) { if (err && err.name === 'AbortError') return; }
   download(blob, file.name);
 }
+const monthsWord = (n) => (n >= MONTHS ? '열두 달' : `${n}개월`);
 function finale() {
   const e = ending(S); store.clear(); sync();
   let prev = null;
@@ -337,7 +338,7 @@ function finale() {
       <p style="font-size:15px;margin-top:6px"><b class="jua" style="color:var(--coral-d)">다음에 길러 볼 힘 · ${lo.name}</b><br>${lo.tip}</p>
       <p style="font-size:13.5px;color:var(--soft);margin-top:8px">5점이 가장 높아. 이 도형은 시험 점수가 아니라 이번 판에서 내가 내린 선택의 흔적이야. 활동지에 옮겨 그려 봐.</p></div>
     <div class="bubble"><b class="jua">달마다 남긴 이익</b>${chart(S.history)}
-      <p style="font-size:15px;color:var(--soft)">열두 달 동안 모두 ${fmt(e.total)}을 남겼고, 가장 잘된 달은 ${best.month}개월 차(${fmt(best.profit)})였어.${S.loan ? ` 은행 빚 ${fmt(S.loan)}이 남아 있어.` : ''}</p></div>
+      <p style="font-size:15px;color:var(--soft)">${monthsWord(S.history.length)} 동안 모두 ${fmt(e.total)}을 남겼고, 가장 잘된 달은 ${best.month}개월 차(${fmt(best.profit)})였어.${S.loan ? ` 은행 빚 ${fmt(S.loan)}이 남아 있어.` : ''}</p></div>
     <div class="concept"><b>🗣 친구들과 이야기해 봐</b>
       <ul class="ask"><li>가장 오래 고민한 선택은 무엇이고, 왜 그렇게 골랐어?</li><li>돈이 가장 많이 남는 선택과 내가 옳다고 생각한 선택이 달랐던 때가 있었어?</li><li>진짜 ${TR().boss}이 된다면 꼭 지키고 싶은 원칙 한 가지는?</li></ul></div>
     <details class="bubble"><summary class="jua">내가 내린 결정 ${S.picks.length}가지</summary><ol class="log">${S.picks.map((p) => `<li>${esc(p.title)} <span>→ ${esc(p.label)}</span>${p.idea ? `<br><span class="mine">✏️ 내 아이디어: ${esc(p.idea)}</span>` : ''}</li>`).join('')}</ol>${S.menu ? `<p style="font-size:15px;margin-top:8px">${TR().icon} 내가 만든 ${TR().menu.word}: <b>${esc(S.menu.name)}</b></p>` : ''}</details>

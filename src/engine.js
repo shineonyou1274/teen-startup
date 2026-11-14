@@ -210,17 +210,17 @@ export function ending(s) {
   const net = s.cash + s.assets - s.loan;
   const total = s.history.reduce((a, h) => a + h.profit, 0);
   let type;
-  if (s.over === 'bankrupt') type = { icon: '🌱', name: `다시 일어서는 ${B}`, line: '가게 문은 닫았지만, 왜 어려워졌는지 아는 사람은 다음에 더 잘해.' };
-  else if (s.trust >= 65 && s.team >= 65 && s.impact >= 50 && net >= 1200) type = { icon: '🏆', name: '균형의 달인', line: '돈, 손님, 직원, 동네를 모두 챙겼어. 가장 어려운 길을 해냈어.' };
+  if (s.over === 'bankrupt') type = { icon: '🌱', name: `다시 일어서는 ${B}`, line: `${T.L.place} 문은 닫았지만, 왜 어려워졌는지 아는 사람은 다음에 더 잘해.` };
+  else if (s.trust >= 65 && s.team >= 65 && s.impact >= 50 && net >= 1200) type = { icon: '🏆', name: '균형의 달인', line: `돈, 손님, ${T.L.staff}, ${T.id === 'tumbler' ? '지구' : '동네'}를 모두 챙겼어. 가장 어려운 길을 해냈어.` };
   else if (total < 0) type = { icon: '🧭', name: `길을 찾는 중인 ${B}`, line: '1년을 버텼지만 번 돈보다 쓴 돈이 많았어. 어디서 새었는지 찾으면 두 번째 해는 달라질 거야.' };
-  else if (s.team < 30) type = { icon: '🏃', name: `혼자 달린 ${B}`, line: '가게는 지켰지만 함께 일한 사람들이 지쳤어. 다음에는 옆 사람의 얼굴을 먼저 살펴봐.' };
+  else if (s.team < 30) type = { icon: '🏃', name: `혼자 달린 ${B}`, line: `${T.L.org}는 지켰지만 함께 일한 사람들이 지쳤어. 다음에는 옆 사람의 얼굴을 먼저 살펴봐.` };
   else {
     const score = { money: Math.min(100, net / 30), trust: s.trust, team: s.team, impact: s.impact * 1.15 };
     const top = Object.keys(score).sort((a, b) => score[b] - score[a])[0];
     type = score[top] < 40 ? { icon: '🧭', name: `길을 찾는 중인 ${B}`, line: '1년을 버텼어. 무엇을 놓쳤는지 돌아보면 두 번째 해는 달라질 거야.' } : {
       money: { icon: '💰', name: `알뜰한 살림꾼 ${B}`, line: '통장을 든든하게 지켰어. 그 돈으로 무엇을 할지가 다음 숙제야.' },
-      trust: { icon: '⭐', name: `단골 부자 ${B}`, line: '손님이 믿고 찾는 가게를 만들었어. 믿음은 가장 오래가는 재산이야.' },
-      team: { icon: '👥', name: `함께 크는 ${B}`, line: '같이 일하는 사람을 먼저 챙겼어. 좋은 가게는 좋은 일터에서 시작해.' },
+      trust: { icon: '⭐', name: `단골 부자 ${B}`, line: `손님이 믿고 찾는 ${T.L.org}를 만들었어. 믿음은 가장 오래가는 재산이야.` },
+      team: { icon: '👥', name: `함께 크는 ${B}`, line: `같이 일하는 사람을 먼저 챙겼어. 좋은 ${T.L.org}는 좋은 일터에서 시작해.` },
       impact: { icon: T.L.impactIcon, ...T.L.impactType },
     }[top];
   }
@@ -231,8 +231,8 @@ export function ending(s) {
   const alive = s.over !== 'bankrupt';
   const skills = [
     { name: '자기유능감', v: half(1 + black * 2 + s.trust / 100 * 1.5 + (alive && !s.emerg ? 0.5 : 0)), tip: '"나는 해낼 수 있다"는 믿음. 흑자를 낸 달과 손님의 믿음이 쌓일수록 커져.' },
-    { name: '자기주도성', v: half(1 + Math.min(2.5, (s.acts || 0) * 0.6) + (s.name !== T.L.defName ? 0.5 : 0) + Math.max(0, 1 - (s.risky || 0) * 0.5)), tip: '시키지 않아도 스스로 정하고 움직이는 힘. 가게를 스스로 키우고, 운에 맡기지 않을수록 커져.' },
-    { name: '성장의지', v: half(1 + (s.level - 1) * 0.9 + (s.hires || 0) * 0.3 + cnt('G') * 0.4 + (s.flags.branch ? 0.8 : 0) + (s.flags.delivery ? 0.4 : 0) + (alive ? 0.4 : 0)), tip: '지금에 머물지 않고 더 나아지려는 마음. 번 돈을 다시 가게에 들일수록 커져.' },
+    { name: '자기주도성', v: half(1 + Math.min(2.5, (s.acts || 0) * 0.6) + (s.name !== T.L.defName ? 0.5 : 0) + Math.max(0, 1 - (s.risky || 0) * 0.5)), tip: `시키지 않아도 스스로 정하고 움직이는 힘. ${T.L.org}를 스스로 키우고, 운에 맡기지 않을수록 커져.` },
+    { name: '성장의지', v: half(1 + (s.level - 1) * 0.9 + (s.hires || 0) * 0.3 + cnt('G') * 0.4 + (s.flags.branch ? 0.8 : 0) + (s.flags.delivery ? 0.4 : 0) + (alive ? 0.4 : 0)), tip: `지금에 머물지 않고 더 나아지려는 마음. 번 돈을 다시 ${T.L.org}에 들일수록 커져.` },
     { name: '도전정신', v: half(1 + cnt('C') * 0.5 + (s.level - 1) * 0.7 + (s.flags.borrowed ? 0.5 : 0) + (s.flags.branch ? 0.5 : 0) + (s.menu ? 0.3 : 0)), tip: '실패할 수 있어도 해 보는 용기. 과감한 투자와 새로운 시도를 고를수록 커져.' },
     { name: '혁신적사고', v: half(1 + cnt('I') * 0.7 + (s.menu ? 0.8 + s.menu.fit * 0.25 : 0) + (s.flags.delivery ? 0.4 : 0)), tip: '남들과 다른 방법을 떠올리는 힘. 대표 메뉴를 만들고 새로운 방식을 고를수록 커져.' },
     { name: '협업능력', v: half(1 + s.team / 100 * 2.5 + cnt('T') * 0.4), tip: '같이 일하는 사람과 힘을 모으는 능력. 함께 일하는 사람을 존중하는 선택을 할수록 커져.' },

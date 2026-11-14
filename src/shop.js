@@ -90,7 +90,8 @@ function person(p, i = 0, staff = false) {
   const shirt = staff ? '#ffcf5c' : SHIRTS[i % SHIRTS.length];
   cyl(g, 0.075, 0.075, 0.2, '#5d5673', -0.1, 0.1, 0, 8); cyl(g, 0.075, 0.075, 0.2, '#5d5673', 0.1, 0.1, 0, 8);
   cyl(g, 0.19, 0.27, 0.46, shirt, 0, 0.42, 0, 12);
-  if (staff) box(g, 0.3, 0.3, 0.05, '#fffaf0', 0, 0.36, 0.22);
+  const wearC = group(g), wearT = group(g); // 치킨집 옷 / 텀블러 작업실 옷
+  if (staff) { box(wearC, 0.3, 0.3, 0.05, '#fffaf0', 0, 0.36, 0.22); box(wearT, 0.32, 0.34, 0.05, '#4fae8c', 0, 0.38, 0.22); box(wearT, 0.14, 0.1, 0.02, '#e8fff4', 0, 0.36, 0.25); }
   const armL = cyl(g, 0.06, 0.06, 0.3, shirt, -0.27, 0.46, 0, 8); armL.rotation.z = -0.35;
   const armR = cyl(g, 0.06, 0.06, 0.3, shirt, 0.27, 0.46, 0, 8); armR.rotation.z = 0.35;
   const head = group(g, 0, 0.96, 0);
@@ -100,10 +101,15 @@ function person(p, i = 0, staff = false) {
   orb(head, 0.04, '#3f3447', -0.12, -0.02, 0.31); orb(head, 0.04, '#3f3447', 0.12, -0.02, 0.31);
   const ck = mat('#ffb3b3', false);
   for (const sx of [-1, 1]) { const c = add(head, new THREE.SphereGeometry(0.055, 10, 8), ck, sx * 0.21, -0.1, 0.25, false); c.scale.z = 0.4; }
-  if (staff) { cyl(head, 0.3, 0.33, 0.14, '#ff8f7a', 0, 0.27, 0, 14); box(head, 0.4, 0.04, 0.2, '#ff8f7a', 0, 0.21, 0.3); }
+  if (staff) {
+    const hatC = group(head), hatT = group(head);
+    cyl(hatC, 0.3, 0.33, 0.14, '#ff8f7a', 0, 0.27, 0, 14); box(hatC, 0.4, 0.04, 0.2, '#ff8f7a', 0, 0.21, 0.3);
+    cyl(hatT, 0.355, 0.355, 0.09, '#4fae8c', 0, 0.16, 0, 16); orb(hatT, 0.07, '#b8e0a8', 0.2, 0.24, 0.2);
+    g.userData.wear = { c: [wearC, hatC], t: [wearT, hatT] };
+  }
   const boxInHand = group(g, 0, 0.5, 0.3); box(boxInHand, 0.42, 0.14, 0.34, '#fff3d6', 0, 0, 0); box(boxInHand, 0.2, 0.02, 0.34, '#ff8f7a', 0, 0.08, 0);
   boxInHand.visible = false;
-  g.userData = { head, boxInHand, phase: i * 1.7 };
+  g.userData = { ...g.userData, head, boxInHand, phase: i * 1.7 };
   return g;
 }
 
@@ -326,6 +332,8 @@ export function createShop(canvas) {
   const pg = mat('#f2a900'); const pq = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.1), [pg, pg, pg, pg, pm, pg]); pq.position.y = 1.45; pq.castShadow = true; plaque.add(pq);
   plaque.rotation.y = 0.5;
   const famous = when(group(land, 3.4, 0, 4.1), (s) => s.trust >= 70);
+  const shut = when(group(land, 0.3, 0, 4.5), (s) => !!s.closed); cyl(shut, 0.05, 0.07, 1.0, '#b98f6a', 0, 0.5, 0, 8);
+  { const sm = new THREE.MeshLambertMaterial({ map: labelTex('잠시\n쉬어요', '#fffaf0', '#6b5c78', 256, 256) }), sb = mat('#cdbfd6'); const q = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.0, 0.1), [sb, sb, sb, sb, sm, sb]); q.position.y = 1.4; q.castShadow = true; shut.add(q); shut.rotation.y = 0.5; }
   const fm = new THREE.MeshLambertMaterial({ map: labelTex('동네\n맛집', '#fffaf0', '#ff7a66', 256, 256) });
   const fb = mat('#ff9f8a'); const fa = new THREE.Mesh(new THREE.BoxGeometry(0.75, 1.0, 0.06), [fb, fb, fb, fb, fm, fb]); fa.position.set(0, 0.52, 0.12); fa.rotation.x = -0.22; fa.castShadow = true; famous.add(fa);
   const fa2 = box(famous, 0.75, 1.0, 0.06, '#ff9f8a', 0, 0.52, -0.12); fa2.rotation.x = 0.22; famous.rotation.y = 0.55;
@@ -355,12 +363,12 @@ export function createShop(canvas) {
 
   // ── 상태 맞추기 ──
   let track = 'chicken';
-  let st = { track, level: 1, trust: 50, team: 60, impact: 10, staff: 2, flags: {} }, first = true, busy = false, queueWant = 3;
+  let st = { track, level: 1, trust: 50, team: 60, impact: 10, staff: 2, closed: false, flags: {} }, first = true, busy = false, queueWant = 3;
   function update(s, snap = false) {
     const lvChanged = s.level !== st.level;
-    st = { track: s.track || track, level: s.level, trust: s.trust, team: s.team, impact: s.impact, staff: s.staff, flags: { ...s.flags } };
+    st = { track: s.track || track, level: s.level, trust: s.trust, team: s.team, impact: s.impact, staff: s.staff, closed: s.closed !== undefined ? !!s.closed : s.over === 'bankrupt', flags: { ...s.flags } };
     const list = [...seats[Math.min(2, st.level)], ...(st.level >= 3 ? seats[3] : []), ...(st.level >= 4 ? seats[4] : [])];
-    const fill = Math.min(list.length, Math.round(list.length * Math.max(0, st.trust - 18) / 75));
+    const fill = st.closed ? 0 : Math.min(list.length, Math.round(list.length * Math.max(0, st.trust - 18) / 75));
     sitters.forEach((g, i) => {
       const on = i < fill; g.userData.pop.test = () => on;
       if (on) { const p = list[i]; g.position.set(p.x, p.y, p.z); g.rotation.y = p.ry; }
@@ -368,7 +376,9 @@ export function createShop(canvas) {
     for (const o of toggles) { const p = o.userData.pop; p.t = p.test(st) ? 1 : 0; if (snap || first) { p.s = p.t; p.v = 0; } }
     fryers[0].body.material = mat(st.flags.oldFryer && st.level === 1 ? '#c4a78f' : '#cfd6e4');
     shopNameDefault = st.track === 'tumbler' ? '다시 텀블러' : '우리 치킨';
-    queueWant = Math.max(0, Math.min(8, Math.round((st.trust - 12) / 11)));
+    queueWant = st.closed ? 0 : Math.max(0, Math.min(8, Math.round((st.trust - 12) / 11)));
+    if (st.closed) for (const c of custs) if (!c.out) { c.out = true; c.i = 1; }
+    staff.forEach((g) => { const w = g.userData.wear, t = st.track === 'tumbler'; w.c.forEach((o) => { o.visible = !t; }); w.t.forEach((o) => { o.visible = t; }); });
     staff.forEach((g) => { const m = g.userData.mood; const k = st.team >= 75 ? 'smile' : st.team <= 35 ? 'sad' : null; m.visible = !!k; if (k) { m.material.map = icons[k]; m.material.needsUpdate = true; } });
     signT = st.level >= 4 ? 9.1 : st.level >= 3 ? 6.15 : 3.5;
     if (lvChanged && !first && !snap) burst('star', 14);
@@ -487,15 +497,17 @@ export function createShop(canvas) {
     setBusy(b) { busy = b; },
     setTrack(id) {
       track = id === 'tumbler' ? 'tumbler' : 'chicken'; const t = track === 'tumbler';
+      document.title = t ? '틴 스타트업 · 친환경 텀블러' : '틴 스타트업 · 치킨집'; canvas.setAttribute('aria-label', t ? '내 텀블러 작업실을 위에서 내려다본 3D 장면' : '내 치킨집을 위에서 내려다본 3D 장면');
       const swap = (m, tex) => { if (m.map) m.map.dispose(); m.map = tex; m.needsUpdate = true; };
       swap(frozenM, labelTex(t ? '새 플라스틱' : '냉동 수입', '#eef6ff', '#4a6fa5'));
       swap(branchM, labelTex(t ? '팝업 매장' : '2호점', '#2d2748', '#ffd166', 256, 100));
+      swap(pm, labelTex(t ? '골드\n착한 회사' : '골드\n착한 가게', '#ffd23f', '#8a5a00', 256, 256));
       swap(fm, labelTex(t ? '동네\n명소' : '동네\n맛집', '#fffaf0', '#ff7a66', 256, 256));
       if (menuName) paintPoster();
       update(Object.assign({}, st, { track }), true);
     },
     setMenu(n) { menuName = n || ''; if (menuName) paintPoster(); update(Object.assign({}, st), false); },
-    snapshot() { renderer.render(scene, cam); return canvas; }, // 그린 직후에 바로 옮겨 그려야 한다
+    snapshot() { clouds.forEach((c) => { c.visible = false; }); renderer.render(scene, cam); clouds.forEach((c) => { c.visible = true; }); return canvas; }, // 그린 직후에 바로 옮겨 그려야 한다
     setName(n) { shopName = n || shopNameDefault; paintSigns(); },
   };
 }
