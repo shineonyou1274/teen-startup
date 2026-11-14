@@ -117,3 +117,8 @@ label.check input { width: 20px; height: 20px; accent-color: var(--coral); flex:
 .legend { font-size: 14px; color: var(--soft); text-align: center; margin: 2px 0 8px; }
 .legend span { display: inline-block; width: 22px; height: 0; vertical-align: middle; margin: 0 5px 0 12px; border-top: 4px solid var(--coral); }
 .legend span.old { border-top: 3px dashed #8d9ccf; }
+
+.tracks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0 14px; }
+.track { display: grid; justify-items: center; gap: 1px; padding: 10px 6px; border-radius: 18px; background: #fff; border: 2px solid var(--line); box-shadow: 0 4px 0 var(--line); font: inherit; }
+.track .ic { font-size: 28px; line-height: 1.2; } .track b { font-family: "Jua", sans-serif; font-weight: 400; font-size: 17px; } .track small { font-size: 13px; color: var(--soft); }
+.track.on { background: #fff6d8; border-color: #f0b93a; box-shadow: 0 4px 0 #f0b93a; }

@@ -156,6 +156,7 @@ export function createShop(canvas) {
   // ── 가게 ──
   const room = group(scene, 0, 0.06, 0);
   const lv = (n) => (s) => s.level === n, lvUp = (n) => (s) => s.level >= n;
+  const isC = (s) => s.track !== 'tumbler', isT = (s) => s.track === 'tumbler'; // 치킨집 / 텀블러 작업실
 
   // 1단계 껍데기: 낡은 골목 가게
   const shell1 = when(group(room), lv(1));
@@ -194,13 +195,13 @@ export function createShop(canvas) {
   const pos = when(group(counter, 1.2, 1.1, 0), lvUp(2)); box(pos, 0.1, 0.3, 0.1, '#6f6a8a', 0, 0.15, 0); const scr = box(pos, 0.6, 0.4, 0.05, '#4b4566', 0, 0.45, 0.02); scr.rotation.x = -0.3; add(pos, new THREE.BoxGeometry(0.5, 0.3, 0.01), glow('#bff0ff'), 0, 0.45, 0.06).rotation.x = -0.3;
   // 친환경 포장 상자 / 일반 상자
   const packs = group(counter, -1.1, 1.1, 0);
-  const packN = when(group(packs), (s) => !s.flags.eco); const packE = when(group(packs), (s) => !!s.flags.eco);
+  const packN = when(group(packs), (s) => isC(s) && !s.flags.eco); const packE = when(group(packs), (s) => isC(s) && !!s.flags.eco);
   for (let i = 0; i < 3; i++) { box(packN, 0.5, 0.14, 0.4, '#fffaf0', 0, 0.07 + i * 0.15, 0); box(packE, 0.5, 0.14, 0.4, '#c9a878', 0, 0.07 + i * 0.15, 0); }
   blob(packE, 0.13, '#7fcf8f', 0, 0.52, 0);
 
   const fryers = [];
   const fryer = (x, test) => {
-    const g = when(group(room, x, 0.06, -2.55), test);
+    const g = when(group(room, x, 0.06, -2.55), (s) => isC(s) && test(s));
     const body = box(g, 0.9, 0.9, 0.7, '#cfd6e4', 0, 0.45, 0); box(g, 0.74, 0.08, 0.54, '#e9a23b', 0, 0.9, 0);
     box(g, 0.9, 0.5, 0.08, '#b9c1d3', 0, 1.15, -0.31); cyl(g, 0.02, 0.02, 0.5, '#6f6a8a', 0.2, 1.0, 0.1, 6).rotation.x = 0.9;
     const puffs = [];
@@ -208,10 +209,36 @@ export function createShop(canvas) {
     fryers.push({ g, body, puffs });
   };
   fryer(-3.3, () => true); fryer(-2.2, lvUp(2)); fryer(-1.1, lvUp(3));
-  const fridge = group(room, 0.1, 0.06, -2.6); box(fridge, 0.85, 1.9, 0.7, '#dbeeff', 0, 0.95, 0); box(fridge, 0.04, 0.5, 0.04, '#9fb6d6', 0.3, 1.2, 0.37); box(fridge, 0.85, 0.03, 0.72, '#b9d3ee', 0, 1.0, 0);
+  // 텀블러 작업실: 플라스틱을 잘게 부수고 녹여 찍어 내는 기계
+  const machine = (x, test, col) => {
+    const g = when(group(room, x, 0.06, -2.55), (s) => isT(s) && test(s));
+    const body = box(g, 0.9, 1.0, 0.7, col, 0, 0.5, 0); box(g, 0.94, 0.08, 0.74, '#6f6a8a', 0, 1.04, 0);
+    const hop = add(g, new THREE.CylinderGeometry(0.34, 0.14, 0.42, 4), '#ffd97d', -0.12, 1.3, 0); hop.rotation.y = Math.PI / 4;
+    box(g, 0.22, 0.22, 0.2, '#4b4566', 0.28, 0.72, 0.4); add(g, new THREE.SphereGeometry(0.05, 8, 6), glow('#9be3d0'), 0.28, 0.9, 0.42); cyl(g, 0.1, 0.1, 0.26, '#9be3d0', 0.28, 0.2, 0.5, 10);
+    const puffs = [];
+    for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.11, 1), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8 })); m.userData.o = i / 5; m.userData.dx = -0.12; g.add(m); puffs.push(m); }
+    fryers.push({ g, body, puffs, base: col });
+  };
+  machine(-3.3, () => true, '#bfe6d3'); machine(-2.2, lvUp(2), '#cfe3ff'); machine(-1.1, lvUp(3), '#ffd6c6');
+  // 재료 선반, 계산대 위 텀블러, 벽 진열장, 헌 텀블러 수거함
+  const TUM = ['#ff9f8a', '#9be3d0', '#ffd97d', '#cdb4f6', '#8ecae6', '#f7a8c4'];
+  const tumblerAt = (p, x, y, z, c, k = 1) => { cyl(p, 0.085 * k, 0.07 * k, 0.26 * k, c, x, y + 0.13 * k, z, 10); cyl(p, 0.09 * k, 0.09 * k, 0.05 * k, '#fffaf0', x, y + 0.285 * k, z, 10); };
+  const rack = when(group(room, 0.1, 0.06, -2.6), isT);
+  box(rack, 0.95, 1.9, 0.6, '#e9d3b4', 0, 0.95, 0);
+  for (let r = 0; r < 3; r++) { box(rack, 0.85, 0.04, 0.62, '#c9a37a', 0, 0.45 + r * 0.55, 0.02); for (let i = 0; i < 2; i++) box(rack, 0.34, 0.26, 0.3, ['#9fc4e8', '#b8e0a8', '#ffd97d', '#ffb4a2', '#cdb4f6', '#e6e6ee'][r * 2 + i], -0.2 + i * 0.4, 0.62 + r * 0.55, 0.2); }
+  const onCounter = when(group(counter, -1.1, 1.1, 0), isT);
+  for (let i = 0; i < 5; i++) tumblerAt(onCounter, -0.4 + i * 0.2, 0, 0.05, TUM[i]);
+  const wallShelf = when(group(room, -3.82, 0.06, -1.1), isT);
+  for (let r = 0; r < 2; r++) { box(wallShelf, 0.3, 0.05, 1.7, '#c9a37a', 0, 1.25 + r * 0.6, 0); for (let i = 0; i < 6; i++) tumblerAt(wallShelf, 0.02, 1.28 + r * 0.6, -0.7 + i * 0.28, TUM[(i + r * 2) % 6], 1.15); }
+  const bin = when(group(land, -3.9, 0, 4.1), (s) => isT(s) && !!s.flags.eco);
+  box(bin, 0.7, 0.8, 0.6, '#7fcf8f', 0, 0.4, 0); box(bin, 0.76, 0.08, 0.66, '#5fae79', 0, 0.84, 0);
+  add(bin, new THREE.PlaneGeometry(0.6, 0.4), new THREE.MeshBasicMaterial({ map: labelTex('헌 텀블러\n수거함', '#eaf8ee', '#3d8a57', 256, 170) }), 0, 0.42, 0.31);
+  tumblerAt(bin, 0.1, 0.88, 0, '#8ecae6'); tumblerAt(bin, -0.15, 0.88, 0.1, '#ffb4a2');
+  const fridge = when(group(room, 0.1, 0.06, -2.6), isC); box(fridge, 0.85, 1.9, 0.7, '#dbeeff', 0, 0.95, 0); box(fridge, 0.04, 0.5, 0.04, '#9fb6d6', 0.3, 1.2, 0.37); box(fridge, 0.85, 0.03, 0.72, '#b9d3ee', 0, 1.0, 0);
+  const frozenM = new THREE.MeshBasicMaterial({ map: labelTex('냉동 수입', '#eef6ff', '#4a6fa5') });
   const frozen = when(group(room, 0.95, 0.06, -2.6), (s) => !!s.flags.frozen);
   box(frozen, 0.6, 0.4, 0.5, '#9fc4e8', 0, 0.2, 0); box(frozen, 0.55, 0.36, 0.48, '#b3d2ef', 0.03, 0.58, 0);
-  add(frozen, new THREE.PlaneGeometry(0.5, 0.25), new THREE.MeshBasicMaterial({ map: labelTex('냉동 수입', '#eef6ff', '#4a6fa5') }), 0, 0.22, 0.26);
+  add(frozen, new THREE.PlaneGeometry(0.5, 0.25), frozenM, 0, 0.22, 0.26);
 
   // 탁자와 의자
   const seats = { 1: [], 2: [], 3: [], 4: [] };
@@ -259,7 +286,7 @@ export function createShop(canvas) {
   const plankM = new THREE.MeshLambertMaterial({ color: '#ffffff' }), neonM = new THREE.MeshBasicMaterial({ color: '#ffffff' });
   const plank = when(new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.85, 0.14), [side, side, side, side, plankM, side]), lv(1)); plank.castShadow = true; plank.rotation.z = -0.04; signG.add(plank);
   const neon = when(new THREE.Mesh(new THREE.BoxGeometry(5.6, 1.4, 0.18), [sideN, sideN, sideN, sideN, neonM, sideN]), lvUp(2)); neon.position.y = 0.35; neon.castShadow = true; signG.add(neon);
-  let shopName = '우리 치킨';
+  let shopName = '우리 치킨', shopNameDefault = '우리 치킨';
   function paintSigns() {
     for (const [m, n] of [[plankM, false], [neonM, true]]) { if (m.map) m.map.dispose(); m.map = signTex(shopName, n); m.needsUpdate = true; }
   }
@@ -278,14 +305,15 @@ export function createShop(canvas) {
   // 2호점: 섬 뒤쪽 구석의 작은 가게
   const branch = when(group(land, 6.3, 0, -3.1), (s) => !!s.flags.branch);
   box(branch, 2, 1.5, 1.6, '#ffe1d3', 0, 0.75, 0); box(branch, 2.3, 0.2, 1.9, '#ff9f8a', 0, 1.6, 0); box(branch, 0.5, 0.9, 0.06, '#ff9f8a', -0.5, 0.45, 0.81); box(branch, 0.7, 0.5, 0.06, '#bfe6ff', 0.4, 0.85, 0.81);
-  add(branch, new THREE.PlaneGeometry(1.3, 0.5), new THREE.MeshBasicMaterial({ map: labelTex('2호점', '#2d2748', '#ffd166', 256, 100) }), 0, 2.0, 0.6);
+  const branchM = new THREE.MeshBasicMaterial({ map: labelTex('2호점', '#2d2748', '#ffd166', 256, 100) });
+  add(branch, new THREE.PlaneGeometry(1.3, 0.5), branchM, 0, 2.0, 0.6);
   box(branch, 1.4, 0.6, 0.1, '#2d2748', 0, 2.0, 0.54);
   // 대표 메뉴 포스터 (뒷벽 오른쪽)
   const posterM = new THREE.MeshBasicMaterial({ color: '#ffffff' });
   const poster = when(group(room, 2.5, 1.95, -2.96), () => !!menuName);
   box(poster, 1.9, 1.25, 0.05, '#ff9f8a', 0, 0, 0); add(poster, new THREE.PlaneGeometry(1.7, 1.05), posterM, 0, 0, 0.03).castShadow = false;
   let menuName = '';
-  function paintPoster() { if (posterM.map) posterM.map.dispose(); posterM.map = labelTex('NEW 대표 메뉴\n' + (menuName || ' '), '#fffaf0', '#e9735e', 384, 236); posterM.needsUpdate = true; }
+  function paintPoster() { if (posterM.map) posterM.map.dispose(); posterM.map = labelTex((track === 'tumbler' ? 'NEW 대표 디자인' : 'NEW 대표 메뉴') + '\n' + (menuName || ' '), '#fffaf0', '#e9735e', 384, 236); posterM.needsUpdate = true; }
   const flower = (p, x, z, c, y = 0) => { cyl(p, 0.025, 0.025, 0.3, '#7fcf8f', x, y + 0.15, z, 5); blob(p, 0.11, c, x, y + 0.34, z); };
   const pots = when(group(land), (s) => s.impact >= 25);
   for (const x of [-3.5, -0.5]) { cyl(pots, 0.26, 0.2, 0.36, '#ffb38a', x, 0.18, 3.75, 10); for (let i = 0; i < 4; i++) flower(pots, x + Math.cos(i * 1.6) * 0.12, 3.75 + Math.sin(i * 1.6) * 0.12, ['#ff9cc2', '#ffd166', '#ffffff', '#ff8f7a'][i], 0.3); }
@@ -326,10 +354,11 @@ export function createShop(canvas) {
   }
 
   // ── 상태 맞추기 ──
-  let st = { level: 1, trust: 50, team: 60, impact: 10, staff: 2, flags: {} }, first = true, busy = false, queueWant = 3;
+  let track = 'chicken';
+  let st = { track, level: 1, trust: 50, team: 60, impact: 10, staff: 2, flags: {} }, first = true, busy = false, queueWant = 3;
   function update(s, snap = false) {
     const lvChanged = s.level !== st.level;
-    st = { level: s.level, trust: s.trust, team: s.team, impact: s.impact, staff: s.staff, flags: { ...s.flags } };
+    st = { track: s.track || track, level: s.level, trust: s.trust, team: s.team, impact: s.impact, staff: s.staff, flags: { ...s.flags } };
     const list = [...seats[Math.min(2, st.level)], ...(st.level >= 3 ? seats[3] : []), ...(st.level >= 4 ? seats[4] : [])];
     const fill = Math.min(list.length, Math.round(list.length * Math.max(0, st.trust - 18) / 75));
     sitters.forEach((g, i) => {
@@ -338,6 +367,7 @@ export function createShop(canvas) {
     });
     for (const o of toggles) { const p = o.userData.pop; p.t = p.test(st) ? 1 : 0; if (snap || first) { p.s = p.t; p.v = 0; } }
     fryers[0].body.material = mat(st.flags.oldFryer && st.level === 1 ? '#c4a78f' : '#cfd6e4');
+    shopNameDefault = st.track === 'tumbler' ? '다시 텀블러' : '우리 치킨';
     queueWant = Math.max(0, Math.min(8, Math.round((st.trust - 12) / 11)));
     staff.forEach((g) => { const m = g.userData.mood; const k = st.team >= 75 ? 'smile' : st.team <= 35 ? 'sad' : null; m.visible = !!k; if (k) { m.material.map = icons[k]; m.material.needsUpdate = true; } });
     signT = st.level >= 4 ? 9.1 : st.level >= 3 ? 6.15 : 3.5;
@@ -400,7 +430,7 @@ export function createShop(canvas) {
     const smoke = st.flags.frozen ? 0.62 : 1;
     for (const f of fryers) for (const m of f.puffs) {
       const k = (T * (busy ? 0.9 : 0.45) + m.userData.o) % 1;
-      m.position.set(Math.sin(k * 5 + m.userData.o * 9) * 0.14, 1.0 + k * 1.3, 0); m.scale.setScalar(0.4 + k * 0.9);
+      m.position.set((m.userData.dx || 0) + Math.sin(k * 5 + m.userData.o * 9) * 0.14, (m.userData.dx ? 1.45 : 1.0) + k * 1.3, 0); m.scale.setScalar(0.4 + k * 0.9);
       m.material.opacity = (1 - k) * 0.75; m.material.color.setRGB(smoke, smoke * (st.flags.frozen ? 0.93 : 1), smoke * (st.flags.frozen ? 0.85 : 1));
     }
     // 알바생: 기분에 따라 통통 뛰거나 축 처진다
@@ -455,8 +485,17 @@ export function createShop(canvas) {
   return {
     update, burst,
     setBusy(b) { busy = b; },
+    setTrack(id) {
+      track = id === 'tumbler' ? 'tumbler' : 'chicken'; const t = track === 'tumbler';
+      const swap = (m, tex) => { if (m.map) m.map.dispose(); m.map = tex; m.needsUpdate = true; };
+      swap(frozenM, labelTex(t ? '새 플라스틱' : '냉동 수입', '#eef6ff', '#4a6fa5'));
+      swap(branchM, labelTex(t ? '팝업 매장' : '2호점', '#2d2748', '#ffd166', 256, 100));
+      swap(fm, labelTex(t ? '동네\n명소' : '동네\n맛집', '#fffaf0', '#ff7a66', 256, 256));
+      if (menuName) paintPoster();
+      update(Object.assign({}, st, { track }), true);
+    },
     setMenu(n) { menuName = n || ''; if (menuName) paintPoster(); update(Object.assign({}, st), false); },
     snapshot() { renderer.render(scene, cam); return canvas; }, // 그린 직후에 바로 옮겨 그려야 한다
-    setName(n) { shopName = n || '우리 치킨'; paintSigns(); },
+    setName(n) { shopName = n || shopNameDefault; paintSigns(); },
   };
 }
