@@ -53,7 +53,7 @@ export const TRACKS = {
     lead: '1월, 버려지는 플라스틱을 줄이려고 작은 작업실에서 텀블러 회사를 차렸어. 12월까지 열두 달 동안, 돈도 벌고 처음의 뜻도 지켜야 해.',
     cards: tumbler,
     start: { price: 22000, unitCost: 10000, wage: 110, rent: 120, etc: 50, feeRate: 0.1, deliveryShare: 0.3 },
-    base: 520, refPrice: 22000, cap: [0, 750, 1250, 1900, 2700], busy: 330, helper: 180,
+    base: 480, refPrice: 22000, cap: [0, 750, 1250, 1900, 2700], busy: 330, helper: 180,
     season: {
       4: { x: 1.08, now: '지구의 날이 있는 달이라 친환경 제품을 찾는 사람이 늘었어.', soon: '다음 달에는 지구의 날이 있어. 찾는 사람이 늘 거야.' },
       6: { x: 1.06, now: '차가운 음료 철이라 텀블러가 잘 나가.', soon: '다음 달부터 차가운 음료 철이야. 일손과 만들 수 있는 양을 미리 살펴봐.' },

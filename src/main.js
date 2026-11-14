@@ -1,7 +1,7 @@
 // 화면과 흐름: 딜레마 카드 → 결과 → 한 달 장사 → 손익표 → (가게 키우기) → 다음 달 … → 결말
 import './style.css';
 import { createShop } from './shop.js';
-import { sfx, startMusic, toggleSound, soundOn } from './audio.js';
+import { sfx, sizzle, startMusic, toggleSound, soundOn } from './audio.js';
 import { newGame, cardFor, choose, runMonth, actions, act, ending, fmt, MONTHS, TRACKS, trackOf, menuDue, skipMenu, makeMenu } from './engine.js';
 
 const $ = (q) => document.querySelector(q);
@@ -153,9 +153,10 @@ function result(r, after) {
 
 function selling() {
   shop.setBusy(true);
+  if (curTrack === 'chicken') sizzle(true);
   view(`<div class="selling"><h2>${S.month}개월 차 장사 중</h2><div class="dots"><span></span><span></span><span></span></div><p class="lead">${TR().L.selling}</p></div>`);
   const rep = runMonth(S);
-  setTimeout(() => { shop.setBusy(false); store.set(S); report(rep); }, 2400);
+  setTimeout(() => { shop.setBusy(false); sizzle(false); store.set(S); report(rep); }, 2400);
 }
 
 // ── 손익표 ──
@@ -210,7 +211,7 @@ function radar(skills, prev) {
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="창업가 역량 도형(5점 만점): ${skills.map((k) => `${k.name} ${k.v}`).join(', ')}">${grid}${spokes}${nums}${old}<polygon points="${shape}" fill="rgba(255,143,122,.35)" stroke="#ff8f7a" stroke-width="3" stroke-linejoin="round"/>${dots}${labels}</svg>`;
 }
 // 결말을 그림 한 장으로: 가게 모습, 사장님 유형, 역량 도형
-async function saveCard(e, hi, lo) {
+function drawCard(e, hi, lo) {
   const W = 1080, H = 1500, c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d'), F = (px) => `${px}px "Jua", "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
   g.fillStyle = '#fff8ee'; g.fillRect(0, 0, W, H);
@@ -243,13 +244,78 @@ async function saveCard(e, hi, lo) {
   if (S.menu) line(`내가 만든 ${TR().menu.word}`, S.menu.name, '#8a7d94');
   line('흑자를 낸 달', `${S.history.filter((h) => h.profit >= 0).length} / ${S.history.length}`, '#8a7d94');
   g.textAlign = 'center'; g.fillStyle = '#b3a595'; g.font = F(24); g.fillText(TR().footer, W / 2, H - 36);
+  return c;
+}
+function download(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+// 사진(JPEG) 여러 장을 A4 쪽으로 묶은 PDF를 직접 만든다. 글자도 그림으로 들어가서 어느 기기에서나 똑같이 보인다.
+function pdfOf(pages) {
+  const enc = new TextEncoder(), parts = [], offs = []; let len = 0;
+  const put = (x) => { const u = typeof x === 'string' ? enc.encode(x) : x; parts.push(u); len += u.length; };
+  const obj = (n, body) => { offs[n] = len; put(`${n} 0 obj\n${body}\nendobj\n`); };
+  put('%PDF-1.4\n');
+  const kids = pages.map((_, i) => `${3 + i * 3} 0 R`).join(' ');
+  obj(1, '<< /Type /Catalog /Pages 2 0 R >>'); obj(2, `<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>`);
+  pages.forEach((pg, i) => {
+    const n = 3 + i * 3, draw = `q 595 0 0 842 0 0 cm /Im${i} Do Q`;
+    obj(n, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im${i} ${n + 2} 0 R >> >> /Contents ${n + 1} 0 R >>`);
+    obj(n + 1, `<< /Length ${draw.length} >>\nstream\n${draw}\nendstream`);
+    offs[n + 2] = len; put(`${n + 2} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pg.data.length} >>\nstream\n`); put(pg.data); put('\nendstream\nendobj\n');
+  });
+  const total = 2 + pages.length * 3, xref = len;
+  put(`xref\n0 ${total + 1}\n0000000000 65535 f \n` + Array.from({ length: total }, (_, i) => String(offs[i + 1]).padStart(10, '0') + ' 00000 n \n').join(''));
+  put(`trailer\n<< /Size ${total + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  return new Blob(parts, { type: 'application/pdf' });
+}
+const jpegOf = (c) => { const b = atob(c.toDataURL('image/jpeg', 0.9).split(',')[1]), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return { data: u, w: c.width, h: c.height }; };
+// 결과 보고서 PDF: 1쪽은 결과 그림, 2쪽은 달마다 남긴 이익과 내가 내린 결정
+function savePdf(e, hi, lo) {
+  const W = 1240, H = 1754, F = (px) => `${px}px "Jua", "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`, B = (px) => `${px}px "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
+  const page = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.fillStyle = '#fff8ee'; g.fillRect(0, 0, W, H); return [c, g]; };
+  const [c1, g1] = page(), card = drawCard(e, hi, lo), k = Math.min(W / card.width, H / card.height);
+  g1.drawImage(card, (W - card.width * k) / 2, (H - card.height * k) / 2, card.width * k, card.height * k);
+  const [c2, g] = page(), L = 90, R = W - 90; let y = 120;
+  g.fillStyle = '#e9735e'; g.font = F(34); g.fillText(`${S.name} · ${e.type.name}`, L, y); y += 70;
+  g.fillStyle = '#4b3f57'; g.font = F(44); g.fillText('달마다 남긴 이익', L, y); y += 30;
+  // 막대그래프
+  const hist = S.history, ch = 300, mid = y + ch / 2, max = Math.max(50, ...hist.map((h) => Math.abs(h.profit))), bw = (R - L) / MONTHS;
+  g.strokeStyle = '#d9cbbb'; g.lineWidth = 3; g.beginPath(); g.moveTo(L, mid); g.lineTo(R, mid); g.stroke();
+  hist.forEach((h, i) => {
+    const hh = Math.max(4, Math.abs(h.profit) / max * (ch / 2 - 44)), x = L + i * bw + 12, top = h.profit >= 0 ? mid - hh : mid;
+    g.fillStyle = h.profit >= 0 ? '#6fc7a8' : '#f08a7b'; g.fillRect(x, top, bw - 24, hh);
+    g.fillStyle = '#4b3f57'; g.font = B(20); g.textAlign = 'center'; g.fillText(String(h.profit), x + (bw - 24) / 2, h.profit >= 0 ? top - 8 : top + hh + 24);
+    g.fillStyle = '#8a7d94'; g.fillText(`${h.month}월`, x + (bw - 24) / 2, y + ch + 4);
+  });
+  g.textAlign = 'left'; y += ch + 44;
+  g.fillStyle = '#8a7d94'; g.font = B(24); g.fillText(`단위: 만 원 · 열두 달 합계 ${fmt(e.total)} · ${TR().L.org}의 값어치 ${fmt(e.net)}`, L, y); y += 76;
+  g.fillStyle = '#4b3f57'; g.font = F(44); g.fillText(`내가 내린 결정 ${S.picks.length}가지`, L, y); y += 52;
+  const wrap = (text, font, col, x, maxW, lh) => {
+    g.font = font; g.fillStyle = col; let line = '';
+    for (const ch2 of text) { if (g.measureText(line + ch2).width > maxW) { g.fillText(line, x, y); y += lh; line = ch2.trim() ? ch2 : ''; } else line += ch2; }
+    if (line) { g.fillText(line, x, y); y += lh; }
+  };
+  const small = S.picks.some((p) => p.idea) || S.picks.length > 12;
+  S.picks.forEach((p, i) => {
+    if (y > H - 150) return;
+    wrap(`${p.month}월  ${p.title}`, F(small ? 25 : 27), '#4b3f57', L, R - L, 34);
+    wrap(`→ ${p.label}`, B(small ? 23 : 25), '#6b5c78', L + 62, R - L - 62, 32);
+    if (p.idea) wrap(`✎ 내 아이디어: ${p.idea}`, B(22), '#e9735e', L + 62, R - L - 62, 30);
+    y += small ? 8 : 12; void i;
+  });
+  if (S.menu && y < H - 110) { y += 8; wrap(`내가 만든 ${TR().menu.word}: ${S.menu.name}`, F(27), '#2f9e77', L, R - L, 36); }
+  g.textAlign = 'center'; g.fillStyle = '#b3a595'; g.font = F(24); g.fillText(TR().footer, W / 2, H - 50);
+  download(pdfOf([jpegOf(c1), jpegOf(c2)]), `${S.name}-결과.pdf`);
+}
+async function saveCard(e, hi, lo) {
+  const c = drawCard(e, hi, lo);
   const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
   const file = new File([blob], `${S.name}-결과.png`, { type: 'image/png' });
   try {
     if (navigator.canShare && navigator.canShare({ files: [file] }) && /Android|iPhone|iPad/i.test(navigator.userAgent)) { await navigator.share({ files: [file] }); return; }
   } catch (err) { if (err && err.name === 'AbortError') return; }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  download(blob, file.name);
 }
 function finale() {
   const e = ending(S); store.clear(); sync();
@@ -261,7 +327,7 @@ function finale() {
   const best = S.history.reduce((a, h) => (h.profit > a.profit ? h : a), S.history[0]);
   view(`
     <div class="badge"><div class="big">${e.type.icon}</div><p class="eyebrow">${esc(S.name)} · ${S.history.length}개월의 기록</p><h2>${e.type.name}</h2><p>${e.type.line}</p></div>
-    <button class="btn ghost" id="shot" style="margin:0 0 14px">📷 결과를 그림 한 장으로 저장</button>
+    <div class="two"><button class="btn ghost" id="pdf">📄 PDF로 저장</button><button class="btn ghost" id="shot">📷 그림으로 저장</button></div>
     <div class="chips">
       <span class="chip">💰 ${TR().L.org}의 값어치 ${fmt(e.net)}</span><span class="chip">⭐ 신뢰 ${S.trust}</span><span class="chip">👥 팀 행복 ${S.team}</span><span class="chip">${TR().L.impactChip} ${S.impact}</span>
     </div>
@@ -277,6 +343,7 @@ function finale() {
     <details class="bubble"><summary class="jua">내가 내린 결정 ${S.picks.length}가지</summary><ol class="log">${S.picks.map((p) => `<li>${esc(p.title)} <span>→ ${esc(p.label)}</span>${p.idea ? `<br><span class="mine">✏️ 내 아이디어: ${esc(p.idea)}</span>` : ''}</li>`).join('')}</ol>${S.menu ? `<p style="font-size:15px;margin-top:8px">${TR().icon} 내가 만든 ${TR().menu.word}: <b>${esc(S.menu.name)}</b></p>` : ''}</details>
     <button class="btn" id="again">처음부터 다시 해 보기</button>`);
   on('#shot', () => saveCard(e, hi, lo));
+  on('#pdf', () => savePdf(e, hi, lo));
   on('#again', () => { hud.hidden = true; $('#stats').innerHTML = ''; S = null; shop.setMenu(''); shop.update(newGame('', true, curTrack), true); title(); });
 }
 

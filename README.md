@@ -29,3 +29,7 @@
 ## 배포 (Vercel)
 
 저장소 맨 위가 곧 프로젝트입니다. Root Directory는 비워 두고, Framework는 Vite, Build Command는 `npm run build`, Output Directory는 `dist`입니다.
+
+## 소리
+
+튀김 소리는 Pixabay의 "Frying Pan Hot Sizzle Loop"(floraphonic)를 6초로 줄여 썼습니다. 나머지 효과음과 배경 음악은 브라우저가 직접 만들어 냅니다.

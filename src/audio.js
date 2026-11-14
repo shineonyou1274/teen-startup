@@ -1,4 +1,5 @@
 // 소리: 파일 없이 브라우저가 직접 만들어 내는 효과음과 잔잔한 배경 음악.
+import sizzleUrl from './sizzle.mp3?inline';
 let ctx = null, master = null, on = true, timer = null, step = 0, nextT = 0;
 try { on = localStorage.getItem('teen-startup-sound') !== 'off'; } catch { /* 저장이 막혀 있으면 켠 채로 둔다 */ }
 
@@ -53,6 +54,15 @@ export const soundOn = () => on;
 export function toggleSound() {
   on = !on; try { localStorage.setItem('teen-startup-sound', on ? 'on' : 'off'); } catch { /* 저장 없이도 바뀐다 */ }
   if (ready()) master.gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.05);
+  if (!on && fry) fry.pause();
   return on;
+}
+// 튀김 소리: 녹음된 소리를 장사하는 동안만 되풀이해 튼다. (Frying Pan Hot Sizzle Loop, floraphonic, Pixabay)
+let fry = null, fryFade = null;
+export function sizzle(play) {
+  if (!fry) { fry = new Audio(sizzleUrl); fry.loop = true; }
+  clearInterval(fryFade);
+  if (play) { if (!on) return; fry.volume = 0.5; fry.currentTime = 0; const pr = fry.play(); if (pr && pr.catch) pr.catch(() => {}); }
+  else fryFade = setInterval(() => { fry.volume = Math.max(0, fry.volume - 0.08); if (fry.volume <= 0.01) { fry.pause(); clearInterval(fryFade); } }, 40);
 }
 document.addEventListener('visibilitychange', () => { if (ctx) (document.hidden ? ctx.suspend() : ctx.resume()); });
