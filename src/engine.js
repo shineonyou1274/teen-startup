@@ -58,8 +58,9 @@ function tagsOf(fx, s) {
   if (fx.wage) t.push(`${L.wageName} ${sign(fx.wage)}${Math.abs(fx.wage)}만 원`);
   if (fx.etc) t.push(`매달 나가는 돈 ${sign(fx.etc)}${Math.abs(fx.etc)}만 원`);
   if (fx.feeRate !== undefined) t.push(fx.feeRate ? `${L.fee} ${Math.round(fx.feeRate * 100)}%` : `${L.fee} 없음`);
-  if (fx.demand) t.push(`찾는 손님 ${pct(fx.demand)}`);
-  if (fx.temp) t.push(`다음 장사만 손님 ${pct(fx.temp)}`);
+  const G = L.guest || '손님';
+  if (fx.demand) t.push(`찾는 ${G} ${pct(fx.demand)}`);
+  if (fx.temp) t.push(`다음 달만 ${G} ${pct(fx.temp)}`);
   return t;
 }
 
@@ -103,12 +104,12 @@ export function runMonth(s) {
   const lost = Math.max(0, Math.round(want - cap));
   const revenue = Math.round(qty * s.price / 10000);
   const rows = [
-    ['재료비', Math.round(qty * s.unitCost / 10000), `${qty.toLocaleString('ko-KR')}${L.unit} × ${won(s.unitCost)}`],
+    [L.costRow || '재료비', Math.round(qty * s.unitCost / 10000), `${qty.toLocaleString('ko-KR')}${L.unit} × ${won(s.unitCost)}`],
     ['인건비', s.staff * s.wage, `${L.staff} ${s.staff}명 × ${s.wage}만 원`],
     [L.helperRow, s.flags.delivery ? RIDER : 0, L.helperSub],
     ['임대료', s.rent, ''],
     [L.fee, Math.round(revenue * s.deliveryShare * s.feeRate), s.feeRate ? `${L.feeOf} ${Math.round(s.feeRate * 100)}%` : ''],
-    ['전기·가스·기타', s.etc, ''],
+    [L.etcRow || '전기·가스·기타', s.etc, ''],
   ];
   if (s.interest) rows.push(['대출 이자', s.interest, '']);
   const cost = rows.reduce((a, r) => a + r[1], 0);
@@ -131,7 +132,7 @@ export function runMonth(s) {
   if (s.impact >= 50) { dTrust += 1; notes.push(L.good); }
   if (lost > cap * 0.08) { dTrust -= 2; notes.push(L.lost(lost.toLocaleString('ko-KR'))); }
   if (qty / s.staff > BUSY) { dTeam -= 4; notes.push(L.tired); }
-  else if (s.staff > 2 && qty / s.staff < 170) notes.push('손님 수에 비해 일하는 사람이 많아. 인건비가 무거워.');
+  else if (s.staff > 2 && qty / s.staff < BUSY * 0.515) notes.push((L.guest || '손님') + ' 수에 비해 일하는 사람이 많아. 인건비가 무거워.');
   if (s.flags.branch) { dTeam -= 1; notes.push(L.branchNote); }
   if (profit < 0) notes.push('이번 달은 번 돈보다 쓴 돈이 많았어.');
   s.trust = clamp(s.trust + dTrust); s.team = clamp(s.team + dTeam);
@@ -186,20 +187,20 @@ export const menuOf = (s) => trackOf(s).menu;
 export const menuDue = (s) => s.month === 6 && s.menu === undefined && !s.over;
 export function skipMenu(s) { s.menu = null; }
 export function makeMenu(s, { name, taste, target, price }) {
-  const M = menuOf(s), fit = M.fit[target][taste], over = Math.max(0, price - M.pay[target]);
+  const M = menuOf(s), G = trackOf(s).L.guest || '손님', fit = M.fit[target][taste], over = Math.max(0, price - M.pay[target]);
   const tName = M.tastes.find((t) => t[0] === taste)[2], gName = M.targets.find((t) => t[0] === target)[2];
   const before = { cash: s.cash, trust: s.trust, team: s.team, impact: s.impact };
-  const mult = 1.03 + fit * 0.04 - over * 0.04, up = [0, 600, 1200][price];
+  const mult = 1.03 + fit * 0.04 - over * 0.04, up = (M.up || [0, 600, 1200])[price];
   s.cash -= M.cost; s.demand *= mult; s.price += up; s.trust = clamp(s.trust + 1 + fit - over);
   s.menu = { name: String(name || '').trim().slice(0, 10) || `${tName} ${M.suffix}`, taste, target, price, fit };
   s.acts = (s.acts || 0) + 1;
-  let text = [`${gName} 손님들은 ${tName} ${M.kindWord}에 별 반응이 없었어. 누가 쓸지를 먼저 떠올렸다면 달랐을 거야.`,
-    `${gName} 손님들이 ${tName} ${M.kindWord}을 꽤 좋아했어. 무난한 출발이야.`,
-    `${gName} 손님들 마음에 ${tName} ${M.kindWord}이 딱 맞았어! "${s.menu.name}" ${M.come} 일부러 찾아오는 손님이 생겼어.`][fit];
-  if (over) text += ` 다만 ${gName} 손님에게는 값이 부담스러웠나 봐. 주문이 기대만큼 늘지 않았어.`;
-  else if (price) text += ' 값을 더 받았는데도 손님들이 기꺼이 지갑을 열었어.';
+  let text = [`${gName} ${G}들은 ${tName} ${M.kindWord}에 별 반응이 없었어. 누가 쓸지를 먼저 떠올렸다면 달랐을 거야.`,
+    `${gName} ${G}들이 ${tName} ${M.kindWord}을 꽤 좋아했어. 무난한 출발이야.`,
+    `${gName} ${G}들 마음에 ${tName} ${M.kindWord}이 딱 맞았어! "${s.menu.name}" ${M.come} 일부러 찾아오는 ${G}이 생겼어.`][fit];
+  if (over) text += ` 다만 ${gName} ${G}에게는 값이 부담스러웠나 봐. 주문이 기대만큼 늘지 않았어.`;
+  else if (price) text += ` 값을 더 받았는데도 ${G}들이 기꺼이 지갑을 열었어.`;
   const deltas = {}; for (const k in before) deltas[k] = s[k] - before[k];
-  const tags = [`찾는 손님 ${pct(mult)}`]; if (up) tags.push(`평균 판매가 +${won(up)}`);
+  const tags = [`찾는 ${G} ${pct(mult)}`]; if (up) tags.push(`평균 판매가 +${won(up)}`);
   return { label: `${M.word} "${s.menu.name}" 출시`, text, deltas, tags, luck: fit === 0 ? 'bad' : null,
     concept: '목표 고객 — 좋은 상품은 "누가, 왜 살까"에서 시작해. 같은 물건도 손님에 따라 값어치가 달라져.' };
 }
@@ -211,7 +212,7 @@ export function ending(s) {
   const total = s.history.reduce((a, h) => a + h.profit, 0);
   let type;
   if (s.over === 'bankrupt') type = { icon: '🌱', name: `다시 일어서는 ${B}`, line: `${T.L.place} 문은 닫았지만, 왜 어려워졌는지 아는 사람은 다음에 더 잘해.` };
-  else if (s.trust >= 65 && s.team >= 65 && s.impact >= 50 && net >= 1200) type = { icon: '🏆', name: '균형의 달인', line: `돈, 손님, ${T.L.staff}, ${T.id === 'tumbler' ? '지구' : '동네'}를 모두 챙겼어. 가장 어려운 길을 해냈어.` };
+  else if (s.trust >= 65 && s.team >= 65 && s.impact >= 50 && net >= 1200) type = { icon: '🏆', name: '균형의 달인', line: `돈, 손님, ${T.L.staff}, ${T.L.world}까지 모두 챙겼어. 가장 어려운 길을 해냈어.` };
   else if (total < 0) type = { icon: '🧭', name: `길을 찾는 중인 ${B}`, line: '1년을 버텼지만 번 돈보다 쓴 돈이 많았어. 어디서 새었는지 찾으면 두 번째 해는 달라질 거야.' };
   else if (s.team < 30) type = { icon: '🏃', name: `혼자 달린 ${B}`, line: `${T.L.org}는 지켰지만 함께 일한 사람들이 지쳤어. 다음에는 옆 사람의 얼굴을 먼저 살펴봐.` };
   else {

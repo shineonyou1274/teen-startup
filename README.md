@@ -6,6 +6,7 @@
 
 - 치킨집 (동네 가게)
 - 친환경 텀블러 (소셜벤처)
+- AI 공부 앱 (기술 창업)
 
 ## 실행
 
@@ -20,7 +21,8 @@
 | `src/engine.js` | 장사 계산(지표, 손익, 가게 키우기, 대표 상품, 역량 점수). 모든 업종이 함께 씀 |
 | `src/tracks.js` | 업종별 처음 숫자, 이름과 문구 |
 | `src/cards.js` | 치킨집 카드 25장 |
-| `src/tumbler.js` | 친환경 텀블러 카드 15장 |
+| `src/tumbler.js` | 친환경 텀블러 카드 24장 |
+| `src/study.js` | AI 공부 앱 카드 24장 |
 | `src/shop.js` | Three.js로 만든 3D 가게 |
 | `src/main.js`, `src/style.css` | 화면과 흐름 |
 | `src/audio.js` | 효과음과 배경 음악 |

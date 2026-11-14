@@ -17,6 +17,7 @@ const store = {
 const shop = createShop($('#gl'));
 let S = null, curTrack = 'chicken';
 const TR = () => trackOf(S || { track: curTrack }); // 지금 업종
+const BEP = () => TR().L.bep || ['이번 달은 이만큼 팔아야 본전이었어.', `${TR().L.unit}를 더 팔아서 이익이 났어.`, `${TR().L.unit}가 모자랐어.`, '지금은 하나를 팔 때마다 손해가 나. 값이나 재료비를 살펴봐.'];
 
 const STATS = [
   ['cash', '💰', '통장', null], ['trust', '⭐', '손님 신뢰', '#ffc23d'], ['team', '👥', '팀 행복', '#6fc7a8'], ['impact', '', '', '#ff8fb0'],
@@ -27,7 +28,7 @@ function drawHud() {
   $('#monthChip').textContent = `${Math.min(MONTHS, chipMonth || S.month)}개월 차 / ${MONTHS}`;
   const box = $('#stats');
   if (!box.children.length) {
-    box.innerHTML = STATS.map(([k, ic, name, col]) => [k, k === 'impact' ? TR().L.impactIcon : ic, k === 'impact' ? TR().L.impact : name, col]).map(([k, ic, name, col]) => `<div class="stat" data-k="${k}"><small>${ic}<span class="nm"> ${name}</span></small><b></b>${col ? `<i><u style="background:${col}"></u></i>` : ''}</div>`).join('');
+    box.innerHTML = STATS.map(([k, ic, name, col]) => [k, k === 'impact' ? TR().L.impactIcon : ic, k === 'impact' ? TR().L.impact : k === 'trust' ? TR().L.trustName || name : name, col]).map(([k, ic, name, col]) => `<div class="stat" data-k="${k}"><small>${ic}<span class="nm"> ${name}</span></small><b></b>${col ? `<i><u style="background:${col}"></u></i>` : ''}</div>`).join('');
   }
   for (const [k] of STATS) {
     const el = box.querySelector(`[data-k="${k}"]`), v = S[k];
@@ -175,7 +176,7 @@ function report(r, quiet) {
         <tr class="sum"><td>이번 달 이익</td><td class="${r.profit >= 0 ? 'up' : 'down'}">${r.profit >= 0 ? '+' : '−'}${fmt(Math.abs(r.profit))}</td></tr>
       </table>
     </div>
-    ${r.bep ? `<p class="bep">📍 <b>손익분기점 ${r.bep.toLocaleString('ko-KR')}${TR().L.unit}</b> — 이번 달은 이만큼 팔아야 본전이었어. ${r.qty >= r.bep ? `${(r.qty - r.bep).toLocaleString('ko-KR')}${TR().L.unit}를 더 팔아서 이익이 났어.` : `${(r.bep - r.qty).toLocaleString('ko-KR')}${TR().L.unit}가 모자랐어.`}</p>` : `<p class="bep">📍 지금은 하나를 팔 때마다 손해가 나. 값이나 재료비를 살펴봐.</p>`}
+    ${r.bep ? `<p class="bep">📍 <b>손익분기점 ${r.bep.toLocaleString('ko-KR')}${TR().L.unit}</b> — ${BEP()[0]} ${r.qty >= r.bep ? `${(r.qty - r.bep).toLocaleString('ko-KR')}${BEP()[1]}` : `${(r.bep - r.qty).toLocaleString('ko-KR')}${BEP()[2]}`}</p>` : `<p class="bep">📍 ${BEP()[3]}</p>`}
     ${r.loanTaken ? `<div class="concept" style="background:#fff0ee"><b style="color:#d9534f">🏦 통장이 바닥났어</b>은행에서 500만 원을 급하게 빌렸어. 이제 매달 이자 10만 원이 나가. 한 번 더 바닥나면 문을 닫아야 해.</div>` : ''}
     ${r.notes.length ? `<ul class="notes">${r.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
     ${grow.length ? `<h3>${TR().L.org} 키우기 <small>(하고 싶을 때만)</small></h3>` + grow.map((a) => `<button class="grow" data-id="${a.id}" ${a.ok ? '' : 'disabled'}><span class="ic">${a.icon}</span><span><b>${a.label}</b><small>${a.desc}${a.ok ? '' : ' · 돈이 모자라'}</small></span><span class="cost">${a.cost ? fmt(a.cost) : ''}</span></button>`).join('') : ''}

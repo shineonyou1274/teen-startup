@@ -2,6 +2,7 @@
 // 계산 방식은 engine.js 하나를 함께 쓴다.
 import * as chicken from './cards.js';
 import * as tumbler from './tumbler.js';
+import * as study from './study.js';
 
 export const TRACKS = {
   chicken: {
@@ -22,7 +23,7 @@ export const TRACKS = {
       defName: '우리 치킨', namePh: '우리 치킨', nameAsk: '가게 이름을 지어 줘', open: '가게 문 열기', place: '가게', org: '가게',
       unit: '마리', priceName: '치킨값', costName: '한 마리 재료비', staff: '알바', staffs: '알바생들', wageName: '알바 한 명 월급',
       fee: '배달 수수료', feeOf: '배달 매출의', helperRow: '배달 기사 월급', helperSub: '자체 배달',
-      impact: '동네 나눔', impactChip: '💖 나눔', impactIcon: '💖',
+      world: '동네', impact: '동네 나눔', impactChip: '💖 나눔', impactIcon: '💖',
       selling: '치킨이 튀겨지고 있어…',
       happy: '알바생들이 신나게 일해서 손님 평가가 올랐어.', gloomy: '가게 분위기가 가라앉아 서비스 평가가 떨어졌어.',
       cheap: '냉동 닭으로 바꾼 뒤 "맛이 예전 같지 않다"는 말이 이어져.', good: '"착한 가게"라는 소문이 손님을 데려와.',
@@ -66,7 +67,7 @@ export const TRACKS = {
       defName: '다시 텀블러', namePh: '다시 텀블러', nameAsk: '회사 이름을 지어 줘', open: '작업실 문 열기', place: '작업실', org: '회사',
       unit: '개', priceName: '텀블러값', costName: '한 개 재료비', staff: '팀원', staffs: '팀원들', wageName: '팀원 한 명 월급',
       fee: '판매 수수료', feeOf: '온라인 매출의', helperRow: '쇼핑몰 운영자 월급', helperSub: '자체 쇼핑몰',
-      impact: '지구 지킴', impactChip: '🌍 지킴', impactIcon: '🌍',
+      world: '지구', impact: '지구 지킴', impactChip: '🌍 지킴', impactIcon: '🌍',
       selling: '텀블러를 만들어 보내고 있어…',
       happy: '팀원들이 신나게 일해서 손님 평가가 올랐어.', gloomy: '작업실 분위기가 가라앉아 손님 응대가 무뎌졌어.',
       cheap: '새 플라스틱을 섞은 뒤 "이게 친환경 맞냐"는 말이 이어져.', good: '"진짜 환경을 생각하는 회사"라는 소문이 손님을 데려와.',
@@ -88,6 +89,51 @@ export const TRACKS = {
       prices: [[0, '기본 텀블러와 같은 값'], [2000, '2,000원 더 받기'], [4000, '4,000원 더 받기']],
       fit: { student: { char: 2, minimal: 1, big: 0, coffee: 0 }, worker: { minimal: 2, coffee: 2, big: 1, char: 0 }, camper: { big: 2, coffee: 1, minimal: 1, char: 0 } },
       pay: { student: 0, worker: 1, camper: 2 },
+    },
+  },
+  study: {
+    id: 'study', icon: '🤖', short: 'AI 공부 앱', kind: '기술 창업', boss: '대표님',
+    headline: '오늘부터 내가<br>AI 공부 앱 대표', footer: '틴 스타트업 · AI 공부 앱 대표님',
+    lead: '1월, 모르는 문제를 AI가 풀어 주는 공부 앱을 들고 작은 사무실에서 시작해. 12월까지 열두 달 동안, 돈도 벌고 회원들의 공부도 정말로 도와야 해.',
+    cards: study,
+    start: { price: 9900, unitCost: 4400, wage: 120, rent: 100, etc: 50, feeRate: 0.15, deliveryShare: 0.4 },
+    base: 930, refPrice: 9900, cap: [0, 1500, 2400, 3700, 5200], busy: 620, helper: 180,
+    season: {
+      3: { x: 1.1, now: '새 학기라 새로 가입하는 학생이 늘었어.', soon: '다음 달은 새 학기야. 가입하는 학생이 늘 거야.' },
+      4: { x: 1.08, now: '중간고사 철이라 앱을 찾는 학생이 많아.' },
+      7: { x: 0.93, now: '여름 방학이라 쉬어 가는 회원이 늘었어.', soon: '다음 달부터 여름 방학이야. 통장에 여유를 남겨 둬.' },
+      8: { x: 0.92, now: '여름 방학이라 쉬어 가는 회원이 늘었어.' },
+      10: { x: 1.06, now: '2학기 중간고사 철이라 회원이 늘었어.', soon: '다음 달은 시험 철이야. 일손과 받을 수 있는 회원 수를 미리 살펴봐.' },
+      11: { x: 1.12, now: '수능과 기말고사를 앞두고 회원이 몰렸어.' },
+    },
+    L: {
+      defName: '척척 공부', namePh: '척척 공부', nameAsk: '앱 이름을 지어 줘', open: '앱 내놓기', place: '사무실', org: '회사',
+      unit: '명', priceName: '한 달 이용료', costName: '한 명당 AI 사용료', staff: '팀원', staffs: '팀원들', wageName: '팀원 한 명 월급',
+      costRow: 'AI 사용료', etcRow: '서버·전기·기타', guest: '회원', trustName: '회원 신뢰',
+      bep: ['이번 달은 회원이 이만큼 있어야 본전이었어.', '명이 더 있어서 이익이 났어.', '명이 모자랐어.', '지금은 회원이 한 명 늘 때마다 손해가 나. 이용료나 AI 사용료를 살펴봐.'],
+      fee: '장터 수수료', feeOf: '장터 결제의', helperRow: '결제 담당 월급', helperSub: '자체 결제',
+      world: '배움', impact: '바른 배움', impactChip: '📚 배움', impactIcon: '📚',
+      selling: '회원들이 앱으로 공부하고 있어…',
+      happy: '팀원들이 신나게 일해서 회원 평가가 올랐어.', gloomy: '사무실 분위기가 가라앉아 오류 수정과 답변이 늦어졌어.',
+      cheap: '값싼 AI를 쓰면서 "틀린 답이 많다"는 말이 이어져.', good: '"진짜 공부가 되는 앱"이라는 소문이 회원을 데려와.',
+      lost: (n) => `회원이 몰려서 ${n}명은 받지 못했어. 사무실과 서버를 키울 때가 됐어.`,
+      tired: '일손이 모자라 팀원들이 지쳤어. 한 명 더 뽑는 걸 생각해 봐.', branchNote: '영어판까지 챙기느라 모두 조금 더 바빠졌어.',
+      act: {
+        hire: ['👥', '팀원 한 명 더 뽑기'], remodel: ['✨', '사무실 새 단장', '네온 간판 · 서버 늘리기'], expand: ['🏢', '2층으로 넓히기'], floor3: ['🏙️', '3층으로 넓히기'],
+        delivery: ['💳', '자체 결제 만들기', '결제 담당 월급', '지금 내는 장터 수수료'], branch: ['🌏', '영어판 내기', '현지 팀에게 맡기는 해외판 · 우리 앱의 신뢰만큼 벌어 와'],
+      },
+      branchRow: '영어판이 벌어 온 돈',
+      impactType: { name: '배움의 친구 대표님', line: '회사가 클수록 스스로 공부하는 학생이 늘었어. 기술이 사람을 도울 수 있다는 걸 보여 줬어.' },
+    },
+    menu: {
+      cost: 60, word: '대표 기능', askTitle: '우리 앱만의 대표 기능을 만들까?',
+      ask: '앱이 조금씩 알려지고 있어. 회원들이 "여기만의 기능은 없어요?" 하고 물어.',
+      nameLabel: '기능 이름', namePh: '예: 오답 탐정', suffix: '기능', q: ['누구를 위한 기능이야?', '어떤 기능으로 할까?', '값은 얼마나 받을까?'], kindWord: '기능', come: '쓰려고',
+      tastes: [['quiz', '📝', '오답 다시 풀기'], ['tutor', '🧑‍🏫', '단계별 풀이'], ['plan', '📅', '공부 계획 짜기'], ['voice', '🎧', '말로 묻고 듣기']],
+      targets: [['mid', '🎒', '중학생'], ['high', '📚', '수험생'], ['adult', '💼', '자격증 준비하는 어른']],
+      prices: [[0, '지금 이용료 그대로'], [1000, '1,000원 더 받기'], [2000, '2,000원 더 받기']], up: [0, 300, 600],
+      fit: { mid: { quiz: 2, voice: 1, tutor: 0, plan: 0 }, high: { tutor: 2, quiz: 2, plan: 1, voice: 0 }, adult: { plan: 2, voice: 1, tutor: 1, quiz: 0 } },
+      pay: { mid: 0, high: 1, adult: 2 },
     },
   },
 };

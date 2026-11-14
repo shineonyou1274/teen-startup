@@ -90,8 +90,8 @@ function person(p, i = 0, staff = false) {
   const shirt = staff ? '#ffcf5c' : SHIRTS[i % SHIRTS.length];
   cyl(g, 0.075, 0.075, 0.2, '#5d5673', -0.1, 0.1, 0, 8); cyl(g, 0.075, 0.075, 0.2, '#5d5673', 0.1, 0.1, 0, 8);
   cyl(g, 0.19, 0.27, 0.46, shirt, 0, 0.42, 0, 12);
-  const wearC = group(g), wearT = group(g); // 치킨집 옷 / 텀블러 작업실 옷
-  if (staff) { box(wearC, 0.3, 0.3, 0.05, '#fffaf0', 0, 0.36, 0.22); box(wearT, 0.32, 0.34, 0.05, '#4fae8c', 0, 0.38, 0.22); box(wearT, 0.14, 0.1, 0.02, '#e8fff4', 0, 0.36, 0.25); }
+  const wearC = group(g), wearT = group(g), wearS = group(g); // 치킨집 옷 / 텀블러 작업실 옷 / 공부 앱 사무실 옷
+  if (staff) { box(wearC, 0.3, 0.3, 0.05, '#fffaf0', 0, 0.36, 0.22); box(wearT, 0.32, 0.34, 0.05, '#4fae8c', 0, 0.38, 0.22); box(wearT, 0.14, 0.1, 0.02, '#e8fff4', 0, 0.36, 0.25); cyl(wearS, 0.2, 0.28, 0.47, '#7aa7e0', 0, 0.42, 0, 12); box(wearS, 0.12, 0.12, 0.02, '#fffaf0', 0.08, 0.5, 0.235); }
   const armL = cyl(g, 0.06, 0.06, 0.3, shirt, -0.27, 0.46, 0, 8); armL.rotation.z = -0.35;
   const armR = cyl(g, 0.06, 0.06, 0.3, shirt, 0.27, 0.46, 0, 8); armR.rotation.z = 0.35;
   const head = group(g, 0, 0.96, 0);
@@ -102,10 +102,11 @@ function person(p, i = 0, staff = false) {
   const ck = mat('#ffb3b3', false);
   for (const sx of [-1, 1]) { const c = add(head, new THREE.SphereGeometry(0.055, 10, 8), ck, sx * 0.21, -0.1, 0.25, false); c.scale.z = 0.4; }
   if (staff) {
-    const hatC = group(head), hatT = group(head);
+    const hatC = group(head), hatT = group(head), hatS = group(head);
     cyl(hatC, 0.3, 0.33, 0.14, '#ff8f7a', 0, 0.27, 0, 14); box(hatC, 0.4, 0.04, 0.2, '#ff8f7a', 0, 0.21, 0.3);
     cyl(hatT, 0.355, 0.355, 0.09, '#4fae8c', 0, 0.16, 0, 16); orb(hatT, 0.07, '#b8e0a8', 0.2, 0.24, 0.2);
-    g.userData.wear = { c: [wearC, hatC], t: [wearT, hatT] };
+    const band = add(hatS, new THREE.TorusGeometry(0.36, 0.035, 6, 16, Math.PI), '#4b4566', 0, 0.02, 0); band.rotation.y = 0; cyl(hatS, 0.09, 0.09, 0.07, '#4b4566', -0.36, 0, 0, 10).rotation.z = Math.PI / 2; cyl(hatS, 0.09, 0.09, 0.07, '#4b4566', 0.36, 0, 0, 10).rotation.z = Math.PI / 2;
+    g.userData.wear = { c: [wearC, hatC], t: [wearT, hatT], s: [wearS, hatS] };
   }
   const boxInHand = group(g, 0, 0.5, 0.3); box(boxInHand, 0.42, 0.14, 0.34, '#fff3d6', 0, 0, 0); box(boxInHand, 0.2, 0.02, 0.34, '#ff8f7a', 0, 0.08, 0);
   boxInHand.visible = false;
@@ -162,7 +163,7 @@ export function createShop(canvas) {
   // ── 가게 ──
   const room = group(scene, 0, 0.06, 0);
   const lv = (n) => (s) => s.level === n, lvUp = (n) => (s) => s.level >= n;
-  const isC = (s) => s.track !== 'tumbler', isT = (s) => s.track === 'tumbler'; // 치킨집 / 텀블러 작업실
+  const isT = (s) => s.track === 'tumbler', isS = (s) => s.track === 'study', isC = (s) => !isT(s) && !isS(s); // 텀블러 작업실 / 공부 앱 사무실 / 치킨집
 
   // 1단계 껍데기: 낡은 골목 가게
   const shell1 = when(group(room), lv(1));
@@ -240,6 +241,23 @@ export function createShop(canvas) {
   box(bin, 0.7, 0.8, 0.6, '#7fcf8f', 0, 0.4, 0); box(bin, 0.76, 0.08, 0.66, '#5fae79', 0, 0.84, 0);
   add(bin, new THREE.PlaneGeometry(0.6, 0.4), new THREE.MeshBasicMaterial({ map: labelTex('헌 텀블러\n수거함', '#eaf8ee', '#3d8a57', 256, 170) }), 0, 0.42, 0.31);
   tumblerAt(bin, 0.1, 0.88, 0, '#8ecae6'); tumblerAt(bin, -0.15, 0.88, 0.1, '#ffb4a2');
+  // 공부 앱 사무실: 컴퓨터 책상, 서버, 계산대 위 태블릿, 벽 칠판
+  const desk = (x, test, col) => {
+    const g = when(group(room, x, 0.06, -2.55), (s) => isS(s) && test(s));
+    const body = box(g, 0.95, 0.08, 0.7, '#e9d3b4', 0, 0.78, 0); box(g, 0.08, 0.76, 0.6, '#c9a37a', -0.4, 0.38, 0); box(g, 0.08, 0.76, 0.6, '#c9a37a', 0.4, 0.38, 0);
+    box(g, 0.1, 0.2, 0.08, '#6f6a8a', 0, 0.92, -0.18); box(g, 0.7, 0.44, 0.05, '#4b4566', 0, 1.22, -0.18); add(g, new THREE.BoxGeometry(0.62, 0.36, 0.01), glow(col), 0, 1.22, -0.15);
+    box(g, 0.44, 0.03, 0.16, '#fffaf0', 0, 0.84, 0.12);
+    fryers.push({ g, body, puffs: [] });
+  };
+  desk(-3.3, () => true, '#bff0ff'); desk(-2.2, lvUp(2), '#d9ffd0'); desk(-1.1, lvUp(3), '#ffe9a8');
+  const server = when(group(room, 0.1, 0.06, -2.6), isS); box(server, 0.8, 1.9, 0.65, '#4b4566', 0, 0.95, 0);
+  const leds = []; for (let r = 0; r < 5; r++) { box(server, 0.7, 0.04, 0.02, '#2d2748', 0, 0.4 + r * 0.32, 0.33); for (let i = 0; i < 3; i++) leds.push(add(server, new THREE.SphereGeometry(0.035, 8, 6), glow(['#9be3d0', '#ffd97d', '#ff9f8a'][i]), -0.22 + i * 0.12, 0.52 + r * 0.32, 0.33)); }
+  const tablets = when(group(counter, -1.1, 1.1, 0), isS);
+  for (let i = 0; i < 3; i++) { const tb = box(tablets, 0.3, 0.02, 0.22, '#4b4566', -0.4 + i * 0.36, 0.06, 0.02); tb.rotation.x = -0.5; add(tablets, new THREE.BoxGeometry(0.26, 0.012, 0.18), glow(['#bff0ff', '#ffe9a8', '#d9ffd0'][i]), -0.4 + i * 0.36, 0.068, 0.026).rotation.x = -0.5; }
+  const board = when(group(room, -3.86, 0.06, -1.1), isS); box(board, 0.06, 1.0, 1.8, '#fffaf0', 0, 1.6, 0); box(board, 0.08, 0.06, 1.9, '#c9a37a', 0, 1.08, 0);
+  for (let i = 0; i < 4; i++) box(board, 0.02, 0.05, 0.5 + (i % 2) * 0.5, ['#ff9f8a', '#8ecae6', '#7fcf8f', '#cdb4f6'][i], 0.04, 1.9 - i * 0.2, -0.3 + (i % 2) * 0.2);
+  const hint = when(group(land, -3.9, 0, 4.1), (s) => isS(s) && !!s.flags.eco); cyl(hint, 0.05, 0.07, 1.0, '#b98f6a', 0, 0.5, 0, 8);
+  { const hm = new THREE.MeshLambertMaterial({ map: labelTex('답 대신\n힌트', '#eaf8ee', '#3d8a57', 256, 256) }), hb = mat('#7fcf8f'); const q = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.1), [hb, hb, hb, hb, hm, hb]); q.position.y = 1.4; q.castShadow = true; hint.add(q); hint.rotation.y = 0.5; }
   const fridge = when(group(room, 0.1, 0.06, -2.6), isC); box(fridge, 0.85, 1.9, 0.7, '#dbeeff', 0, 0.95, 0); box(fridge, 0.04, 0.5, 0.04, '#9fb6d6', 0.3, 1.2, 0.37); box(fridge, 0.85, 0.03, 0.72, '#b9d3ee', 0, 1.0, 0);
   const frozenM = new THREE.MeshBasicMaterial({ map: labelTex('냉동 수입', '#eef6ff', '#4a6fa5') });
   const frozen = when(group(room, 0.95, 0.06, -2.6), (s) => !!s.flags.frozen);
@@ -301,7 +319,7 @@ export function createShop(canvas) {
 
   // 가게 밖: 배달 오토바이, 꽃, 현판
   const scooter = (x, z, c) => {
-    const g = when(group(land, x, 0, z), (s) => !!s.flags.delivery);
+    const g = when(group(land, x, 0, z), (s) => !isS(s) && !!s.flags.delivery);
     for (const dz of [-0.5, 0.5]) { const w = cyl(g, 0.2, 0.2, 0.12, '#4b4566', 0, 0.2, dz, 14); w.rotation.z = Math.PI / 2; }
     box(g, 0.3, 0.16, 1.0, c, 0, 0.36, 0); box(g, 0.34, 0.14, 0.5, '#4b4566', 0, 0.56, -0.2); box(g, 0.28, 0.5, 0.14, c, 0, 0.6, 0.42);
     box(g, 0.6, 0.05, 0.05, '#6f6a8a', 0, 0.9, 0.42); box(g, 0.5, 0.46, 0.46, '#fffaf0', 0, 0.82, -0.52); box(g, 0.52, 0.1, 0.48, '#ff8f7a', 0, 1.02, -0.52);
@@ -319,7 +337,7 @@ export function createShop(canvas) {
   const poster = when(group(room, 2.5, 1.95, -2.96), () => !!menuName);
   box(poster, 1.9, 1.25, 0.05, '#ff9f8a', 0, 0, 0); add(poster, new THREE.PlaneGeometry(1.7, 1.05), posterM, 0, 0, 0.03).castShadow = false;
   let menuName = '';
-  function paintPoster() { if (posterM.map) posterM.map.dispose(); posterM.map = labelTex((track === 'tumbler' ? 'NEW 대표 디자인' : 'NEW 대표 메뉴') + '\n' + (menuName || ' '), '#fffaf0', '#e9735e', 384, 236); posterM.needsUpdate = true; }
+  function paintPoster() { if (posterM.map) posterM.map.dispose(); posterM.map = labelTex(({ tumbler: 'NEW 대표 디자인', study: 'NEW 대표 기능' }[track] || 'NEW 대표 메뉴') + '\n' + (menuName || ' '), '#fffaf0', '#e9735e', 384, 236); posterM.needsUpdate = true; }
   const flower = (p, x, z, c, y = 0) => { cyl(p, 0.025, 0.025, 0.3, '#7fcf8f', x, y + 0.15, z, 5); blob(p, 0.11, c, x, y + 0.34, z); };
   const pots = when(group(land), (s) => s.impact >= 25);
   for (const x of [-3.5, -0.5]) { cyl(pots, 0.26, 0.2, 0.36, '#ffb38a', x, 0.18, 3.75, 10); for (let i = 0; i < 4; i++) flower(pots, x + Math.cos(i * 1.6) * 0.12, 3.75 + Math.sin(i * 1.6) * 0.12, ['#ff9cc2', '#ffd166', '#ffffff', '#ff8f7a'][i], 0.3); }
@@ -375,10 +393,10 @@ export function createShop(canvas) {
     });
     for (const o of toggles) { const p = o.userData.pop; p.t = p.test(st) ? 1 : 0; if (snap || first) { p.s = p.t; p.v = 0; } }
     fryers[0].body.material = mat(st.flags.oldFryer && st.level === 1 ? '#c4a78f' : '#cfd6e4');
-    shopNameDefault = st.track === 'tumbler' ? '다시 텀블러' : '우리 치킨';
+    shopNameDefault = { tumbler: '다시 텀블러', study: '척척 공부' }[st.track] || '우리 치킨';
     queueWant = st.closed ? 0 : Math.max(0, Math.min(8, Math.round((st.trust - 12) / 11)));
     if (st.closed) for (const c of custs) if (!c.out) { c.out = true; c.i = 1; }
-    staff.forEach((g) => { const w = g.userData.wear, t = st.track === 'tumbler'; w.c.forEach((o) => { o.visible = !t; }); w.t.forEach((o) => { o.visible = t; }); });
+    staff.forEach((g) => { const w = g.userData.wear, k = st.track === 'tumbler' ? 't' : st.track === 'study' ? 's' : 'c'; for (const n in w) w[n].forEach((o) => { o.visible = n === k; }); });
     staff.forEach((g) => { const m = g.userData.mood; const k = st.team >= 75 ? 'smile' : st.team <= 35 ? 'sad' : null; m.visible = !!k; if (k) { m.material.map = icons[k]; m.material.needsUpdate = true; } });
     signT = st.level >= 4 ? 9.1 : st.level >= 3 ? 6.15 : 3.5;
     if (lvChanged && !first && !snap) burst('star', 14);
@@ -435,6 +453,7 @@ export function createShop(canvas) {
     signG.position.y += (signT - signG.position.y) * Math.min(1, dt * 5);
     neonM.color.setScalar(0.9 + Math.sin(T * 3) * 0.06 + (Math.sin(T * 23) > 0.96 ? -0.25 : 0));
     bulbs.forEach((b, i) => b.scale.setScalar(1 + Math.sin(T * 4 + i) * 0.18));
+    leds.forEach((b, i) => { b.visible = Math.sin(T * (busy ? 9 : 4) + i * 2.3) > -0.3; });
     clouds.forEach((c, i) => { c.position.x += dt * (0.12 + i * 0.05); if (c.position.x > 14) c.position.x = -14; });
     // 튀김기 김
     const smoke = st.flags.frozen ? 0.62 : 1;
@@ -496,13 +515,14 @@ export function createShop(canvas) {
     update, burst,
     setBusy(b) { busy = b; },
     setTrack(id) {
-      track = id === 'tumbler' ? 'tumbler' : 'chicken'; const t = track === 'tumbler';
-      document.title = t ? '틴 스타트업 · 친환경 텀블러' : '틴 스타트업 · 치킨집'; canvas.setAttribute('aria-label', t ? '내 텀블러 작업실을 위에서 내려다본 3D 장면' : '내 치킨집을 위에서 내려다본 3D 장면');
+      track = ['tumbler', 'study'].includes(id) ? id : 'chicken';
+      const W = { chicken: ['치킨집', '내 치킨집', '냉동 수입', '2호점', '골드\n착한 가게', '동네\n맛집'], tumbler: ['친환경 텀블러', '내 텀블러 작업실', '새 플라스틱', '팝업 매장', '골드\n착한 회사', '동네\n명소'], study: ['AI 공부 앱', '내 공부 앱 사무실', '값싼 AI', '영어판', '골드\n바른 배움', '동네\n명소'] }[track];
+      document.title = `틴 스타트업 · ${W[0]}`; canvas.setAttribute('aria-label', `${W[1]}을 위에서 내려다본 3D 장면`);
       const swap = (m, tex) => { if (m.map) m.map.dispose(); m.map = tex; m.needsUpdate = true; };
-      swap(frozenM, labelTex(t ? '새 플라스틱' : '냉동 수입', '#eef6ff', '#4a6fa5'));
-      swap(branchM, labelTex(t ? '팝업 매장' : '2호점', '#2d2748', '#ffd166', 256, 100));
-      swap(pm, labelTex(t ? '골드\n착한 회사' : '골드\n착한 가게', '#ffd23f', '#8a5a00', 256, 256));
-      swap(fm, labelTex(t ? '동네\n명소' : '동네\n맛집', '#fffaf0', '#ff7a66', 256, 256));
+      swap(frozenM, labelTex(W[2], '#eef6ff', '#4a6fa5'));
+      swap(branchM, labelTex(W[3], '#2d2748', '#ffd166', 256, 100));
+      swap(pm, labelTex(W[4], '#ffd23f', '#8a5a00', 256, 256));
+      swap(fm, labelTex(W[5], '#fffaf0', '#ff7a66', 256, 256));
       if (menuName) paintPoster();
       update(Object.assign({}, st, { track }), true);
     },
