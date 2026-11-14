@@ -321,7 +321,7 @@ export const FOLLOW = [
       { label: '한 사람씩 이야기를 듣고, 바꿀 점을 함께 찾는다', sk: 'TP', fx: { team: 14, temp: 0.95 },
         text: '쉬는 시간, 일정 통보, 말투. 듣고 보니 돈보다 먼저 고칠 게 있었어. 둘은 한 달 더 지켜보기로 했어.' },
     ] } },
-  { key: 'F-frozen', month: 8, when: (s) => !!s.flags.frozen, card: {
+  { key: 'F-frozen', month: 8, always: true, when: (s) => !!s.flags.frozen, card: {
     title: '원산지 표시 점검',
     text: '구청에서 원산지 표시 점검을 나온대. 냉동 수입 닭으로 바꿨는데, 메뉴판에는 아직 "국내산"이라고 적혀 있어.',
     concept: '원산지 표시 — 손님은 적힌 대로 믿고 사. 사실과 다르게 적으면 법을 어기는 일이고, 믿음도 함께 잃어.',

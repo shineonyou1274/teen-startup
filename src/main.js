@@ -351,7 +351,7 @@ function finale() {
 
 // ── 가게 크게 보기 ──
 const zb = $('#zoomBtn');
-zb.addEventListener('click', () => { const big = $('#app').classList.toggle('big'); zb.textContent = big ? '⤡' : '⤢'; zb.setAttribute('aria-label', big ? '가게 작게 보기' : '가게 크게 보기'); });
+zb.addEventListener('click', () => { const big = $('#app').classList.toggle('big'); zb.textContent = big ? '⤡' : '⤢'; zb.setAttribute('aria-label', big ? '장면 작게 보기' : '장면 크게 보기'); });
 
 // ── 소리 ──
 const sb = $('#soundBtn');
